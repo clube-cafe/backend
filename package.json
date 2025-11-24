@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
   },
   "repository": {
     "type": "git",
@@ -19,8 +21,18 @@
   },
   "homepage": "https://github.com/clube-cafe/backend#readme",
   "dependencies": {
-    "-": "^0.0.1",
-    "e": "^0.2.33",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "dotenv": "^16.4.5",
+    "sequelize": "^6.37.3",
+    "pg": "^8.11.5",
+    "mysql2": "^3.9.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "@types/node": "^22.5.5",
+    "@types/express": "^5.0.0",
+    "@types/dotenv": "^8.2.0"
   }
 }
