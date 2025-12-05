@@ -10,8 +10,7 @@ export interface AssinaturaAttributes {
   data_inicio: Date;
 }
 
-export interface AssinaturaCreationAttributes
-  extends Optional<AssinaturaAttributes, "id"> {}
+export interface AssinaturaCreationAttributes extends Optional<AssinaturaAttributes, "id"> {}
 
 export class Assinatura
   extends Model<AssinaturaAttributes, AssinaturaCreationAttributes>
@@ -29,29 +28,28 @@ Assinatura.init(
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
     },
     user_id: {
       type: DataTypes.UUID,
-      allowNull: false
+      allowNull: false,
     },
     valor: {
       type: DataTypes.DOUBLE,
-      allowNull: false
+      allowNull: false,
     },
     periodicidade: {
       type: DataTypes.ENUM(...Object.values(PERIODO)),
-      allowNull: false
+      allowNull: false,
     },
     data_inicio: {
       type: DataTypes.DATE,
-      allowNull: false
-    }
+      allowNull: false,
+    },
   },
   {
     sequelize,
     tableName: "assinaturas",
-    timestamps: false
+    timestamps: false,
   }
 );
-

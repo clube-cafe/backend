@@ -12,8 +12,7 @@ const sequelize = new Sequelize({
   username: process.env.DB_USER || "postgres",
   password: process.env.DB_PASS || "postgres123",
   database: process.env.DB_NAME || "clube_cafe",
-  logging: false
+  logging: false,
 });
 
 export default sequelize;
-

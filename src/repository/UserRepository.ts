@@ -2,12 +2,11 @@ import { User } from "../models/User";
 import { TIPO_USER } from "../models/enums";
 
 export class UserRepository {
-
   async createUser(nome: string, email: string, tipo_user: TIPO_USER) {
     const user = await User.create({
       nome,
       email,
-      tipo_user
+      tipo_user,
     });
 
     return user;
@@ -23,7 +22,7 @@ export class UserRepository {
 
   async getUserByEmail(email: string) {
     return await User.findOne({
-      where: { email }
+      where: { email },
     });
   }
 
@@ -51,5 +50,3 @@ export class UserRepository {
     return true;
   }
 }
-
-

@@ -9,13 +9,9 @@ export interface UserAttributes {
   tipo_user: TIPO_USER;
 }
 
-export interface UserCreationAttributes
-  extends Optional<UserAttributes, "id"> {}
+export interface UserCreationAttributes extends Optional<UserAttributes, "id"> {}
 
-export class User
-  extends Model<UserAttributes, UserCreationAttributes>
-  implements UserAttributes
-{
+export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: string;
   public nome!: string;
   public email!: string;
@@ -27,27 +23,25 @@ User.init(
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
     },
     nome: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: false,
     },
     email: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true
+      unique: true,
     },
     tipo_user: {
       type: DataTypes.ENUM(...Object.values(TIPO_USER)),
-      allowNull: false
-    }
+      allowNull: false,
+    },
   },
   {
     sequelize,
     tableName: "users",
-    timestamps: false
+    timestamps: false,
   }
 );
-
-

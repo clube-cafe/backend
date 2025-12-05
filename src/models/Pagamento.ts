@@ -11,8 +11,10 @@ export interface PagamentoAttributes {
   observacao: string | null;
 }
 
-export interface PagamentoCreationAttributes
-  extends Optional<PagamentoAttributes, "id" | "observacao"> {}
+export interface PagamentoCreationAttributes extends Optional<
+  PagamentoAttributes,
+  "id" | "observacao"
+> {}
 
 export class Pagamento
   extends Model<PagamentoAttributes, PagamentoCreationAttributes>
@@ -31,33 +33,32 @@ Pagamento.init(
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
     },
     user_id: {
       type: DataTypes.UUID,
-      allowNull: false
+      allowNull: false,
     },
     valor: {
       type: DataTypes.DOUBLE,
-      allowNull: false
+      allowNull: false,
     },
     data_pagamento: {
       type: DataTypes.DATE,
-      allowNull: false
+      allowNull: false,
     },
     forma_pagamento: {
       type: DataTypes.ENUM(...Object.values(PAGAMENTO_ENUM)),
-      allowNull: false
+      allowNull: false,
     },
     observacao: {
       type: DataTypes.STRING,
-      allowNull: true
-    }
+      allowNull: true,
+    },
   },
   {
     sequelize,
     tableName: "pagamentos",
-    timestamps: false
+    timestamps: false,
   }
 );
-

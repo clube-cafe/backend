@@ -1,15 +1,24 @@
 import { Assinatura } from "../models/Assinatura";
 import { PERIODO } from "../models/enums";
+import { Transaction } from "sequelize";
 
 export class AssinaturaRepository {
-
-  async createAssinatura(user_id: string, valor: number, periodicidade: PERIODO, data_inicio: Date) {
-    const assinatura = await Assinatura.create({
-      user_id,
-      valor,
-      periodicidade,
-      data_inicio
-    });
+  async createAssinatura(
+    user_id: string,
+    valor: number,
+    periodicidade: PERIODO,
+    data_inicio: Date,
+    transaction?: Transaction
+  ) {
+    const assinatura = await Assinatura.create(
+      {
+        user_id,
+        valor,
+        periodicidade,
+        data_inicio,
+      },
+      { transaction }
+    );
 
     return assinatura;
   }
@@ -24,17 +33,18 @@ export class AssinaturaRepository {
 
   async getAssinaturasByUserId(user_id: string) {
     return await Assinatura.findAll({
-      where: { user_id }
+      where: { user_id },
     });
   }
 
   async updateAssinatura(
-    id: string, 
-    valor?: number, 
-    periodicidade?: PERIODO, 
-    data_inicio?: Date
+    id: string,
+    valor?: number,
+    periodicidade?: PERIODO,
+    data_inicio?: Date,
+    transaction?: Transaction
   ) {
-    const assinatura = await Assinatura.findByPk(id);
+    const assinatura = await Assinatura.findByPk(id, { transaction });
     if (!assinatura) {
       throw new Error("Assinatura não encontrada");
     }
@@ -43,18 +53,24 @@ export class AssinaturaRepository {
     if (periodicidade) assinatura.periodicidade = periodicidade;
     if (data_inicio) assinatura.data_inicio = data_inicio;
 
-    await assinatura.save();
+    await assinatura.save({ transaction });
     return assinatura;
   }
 
-  async deleteAssinatura(id: string) {
-    const assinatura = await Assinatura.findByPk(id);
+  async deleteAssinatura(id: string, transaction?: Transaction) {
+    const assinatura = await Assinatura.findByPk(id, { transaction });
     if (!assinatura) {
       throw new Error("Assinatura não encontrada");
     }
 
-    await assinatura.destroy();
+    await assinatura.destroy({ transaction });
     return true;
   }
-}
 
+  async deleteAssinaturasByUserId(user_id: string, transaction?: Transaction) {
+    return await Assinatura.destroy({
+      where: { user_id },
+      transaction,
+    });
+  }
+}

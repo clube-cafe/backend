@@ -11,8 +11,10 @@ export interface PagamentoPendenteAttributes {
   status: STATUS;
 }
 
-export interface PagamentoPendenteCreationAttributes
-  extends Optional<PagamentoPendenteAttributes, "id"> {}
+export interface PagamentoPendenteCreationAttributes extends Optional<
+  PagamentoPendenteAttributes,
+  "id"
+> {}
 
 export class PagamentoPendente
   extends Model<PagamentoPendenteAttributes, PagamentoPendenteCreationAttributes>
@@ -31,34 +33,33 @@ PagamentoPendente.init(
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
     },
     user_id: {
       type: DataTypes.UUID,
-      allowNull: false
+      allowNull: false,
     },
     valor: {
       type: DataTypes.DOUBLE,
-      allowNull: false
+      allowNull: false,
     },
     data_vencimento: {
       type: DataTypes.DATE,
-      allowNull: false
+      allowNull: false,
     },
     descricao: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: false,
     },
     status: {
       type: DataTypes.ENUM(...Object.values(STATUS)),
       allowNull: false,
-      defaultValue: STATUS.PENDENTE
-    }
+      defaultValue: STATUS.PENDENTE,
+    },
   },
   {
     sequelize,
     tableName: "pagamentos_pendentes",
-    timestamps: false
+    timestamps: false,
   }
 );
-

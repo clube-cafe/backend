@@ -11,8 +11,7 @@ export interface HistoricoAttributes {
   descricao: string;
 }
 
-export interface HistoricoCreationAttributes
-  extends Optional<HistoricoAttributes, "id"> {}
+export interface HistoricoCreationAttributes extends Optional<HistoricoAttributes, "id"> {}
 
 export class Historico
   extends Model<HistoricoAttributes, HistoricoCreationAttributes>
@@ -31,33 +30,32 @@ Historico.init(
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
     },
     user_id: {
       type: DataTypes.UUID,
-      allowNull: false
+      allowNull: false,
     },
     tipo: {
       type: DataTypes.ENUM(...Object.values(TIPO)),
-      allowNull: false
+      allowNull: false,
     },
     valor: {
       type: DataTypes.DOUBLE,
-      allowNull: false
+      allowNull: false,
     },
     data: {
       type: DataTypes.DATE,
-      allowNull: false
+      allowNull: false,
     },
     descricao: {
       type: DataTypes.STRING,
-      allowNull: false
-    }
+      allowNull: false,
+    },
   },
   {
     sequelize,
     tableName: "historicos",
-    timestamps: false
+    timestamps: false,
   }
 );
-
