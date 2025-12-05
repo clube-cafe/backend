@@ -1,0 +1,28 @@
+export enum TIPO_USER {
+  ADMIN = "ADMIN",
+  ASSINANTE = "ASSINANTE",
+}
+
+export enum PERIODO {
+  MENSAL = "MENSAL",
+  TRIMESTRAL = "TRIMESTRAL",
+  SEMESTRAL = "SEMESTRAL",
+  ANUAL = "ANUAL",
+}
+
+export enum STATUS {
+  PENDENTE = "PENDENTE",
+  ATRASADO = "ATRASADO",
+  CANCELADO = "CANCELADO",
+}
+
+export enum PAGAMENTO_ENUM {
+  PIX = "PIX",
+  CARTAO = "CARTAO",
+  CAIXA = "CAIXA",
+}
+
+export enum TIPO {
+  ENTRADA = "ENTRADA",
+  SAIDA = "SAIDA",
+}
