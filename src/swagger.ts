@@ -1,4 +1,5 @@
 import swaggerJsdoc from "swagger-jsdoc";
+import { swaggerSchemas } from "./swagger/schemas";
 
 const options = {
   definition: {
@@ -19,156 +20,10 @@ const options = {
       },
     ],
     components: {
-      schemas: {
-        User: {
-          type: "object",
-          properties: {
-            id: {
-              type: "string",
-              format: "uuid",
-              description: "ID único do usuário",
-            },
-            nome: {
-              type: "string",
-              description: "Nome completo do usuário",
-            },
-            email: {
-              type: "string",
-              format: "email",
-              description: "Email único do usuário",
-            },
-            tipo_user: {
-              type: "string",
-              enum: ["ADMIN", "ASSINANTE"],
-              description: "Tipo de usuário",
-            },
-          },
-          required: ["nome", "email", "tipo_user"],
-        },
-        Assinatura: {
-          type: "object",
-          properties: {
-            id: {
-              type: "string",
-              format: "uuid",
-            },
-            user_id: {
-              type: "string",
-              format: "uuid",
-            },
-            valor: {
-              type: "number",
-              format: "float",
-            },
-            periodicidade: {
-              type: "string",
-              enum: ["MENSAL", "TRIMESTRAL", "SEMESTRAL", "ANUAL"],
-            },
-            data_inicio: {
-              type: "string",
-              format: "date-time",
-            },
-          },
-        },
-        Pagamento: {
-          type: "object",
-          properties: {
-            id: {
-              type: "string",
-              format: "uuid",
-            },
-            user_id: {
-              type: "string",
-              format: "uuid",
-            },
-            valor: {
-              type: "number",
-              format: "float",
-            },
-            data_pagamento: {
-              type: "string",
-              format: "date-time",
-            },
-            forma_pagamento: {
-              type: "string",
-              enum: ["PIX", "CARTAO", "CAIXA"],
-            },
-            observacao: {
-              type: "string",
-            },
-          },
-        },
-        PagamentoPendente: {
-          type: "object",
-          properties: {
-            id: {
-              type: "string",
-              format: "uuid",
-            },
-            user_id: {
-              type: "string",
-              format: "uuid",
-            },
-            valor: {
-              type: "number",
-              format: "float",
-            },
-            data_vencimento: {
-              type: "string",
-              format: "date-time",
-            },
-            descricao: {
-              type: "string",
-            },
-            status: {
-              type: "string",
-              enum: ["PENDENTE", "ATRASADO", "CANCELADO"],
-            },
-          },
-        },
-        Historico: {
-          type: "object",
-          properties: {
-            id: {
-              type: "string",
-              format: "uuid",
-            },
-            user_id: {
-              type: "string",
-              format: "uuid",
-            },
-            tipo: {
-              type: "string",
-              enum: ["ENTRADA", "SAIDA"],
-            },
-            valor: {
-              type: "number",
-              format: "float",
-            },
-            data: {
-              type: "string",
-              format: "date-time",
-            },
-            descricao: {
-              type: "string",
-            },
-          },
-        },
-        Error: {
-          type: "object",
-          properties: {
-            message: {
-              type: "string",
-            },
-            error: {
-              type: "string",
-            },
-          },
-        },
-      },
+      schemas: swaggerSchemas,
     },
   },
-  apis: ["./src/index.ts", "./src/routes/**/*.ts"],
+  apis: ["./src/routes/**/*.ts"],
 };
 
 export const specs = swaggerJsdoc(options);

@@ -10,11 +10,20 @@ const userRepo = new UserRepository();
  * /users:
  *   post:
  *     summary: Criar novo usuário
- *     tags:
- *       - Usuários
+ *     tags: [Usuários]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UserInput'
  *     responses:
  *       201:
  *         description: Usuário criado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
  *       400:
  *         description: Dados inválidos
  *       500:
@@ -39,7 +48,6 @@ router.post("/", async (req: Request, res: Response) => {
     const user = await userRepo.createUser(nome, email, tipo_user);
     return res.status(201).json(user);
   } catch (error: any) {
-    console.error(error);
     return res.status(500).json({ message: "Erro ao criar o usuário", error: error.message });
   }
 });
@@ -49,20 +57,22 @@ router.post("/", async (req: Request, res: Response) => {
  * /users:
  *   get:
  *     summary: Listar todos os usuários
- *     tags:
- *       - Usuários
+ *     tags: [Usuários]
  *     responses:
  *       200:
  *         description: Lista de usuários
- *       500:
- *         description: Erro ao obter
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/User'
  */
 router.get("/", async (req: Request, res: Response) => {
   try {
     const users = await userRepo.getAllUsers();
     return res.json(users);
   } catch (error: any) {
-    console.error(error);
     return res.status(500).json({ message: "Erro ao obter os usuários", error: error.message });
   }
 });
@@ -72,8 +82,7 @@ router.get("/", async (req: Request, res: Response) => {
  * /users/{id}:
  *   get:
  *     summary: Obter usuário por ID
- *     tags:
- *       - Usuários
+ *     tags: [Usuários]
  *     parameters:
  *       - in: path
  *         name: id
@@ -83,10 +92,12 @@ router.get("/", async (req: Request, res: Response) => {
  *     responses:
  *       200:
  *         description: Dados do usuário
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
  *       404:
  *         description: Não encontrado
- *       500:
- *         description: Erro ao obter
  */
 router.get("/:id", async (req: Request, res: Response) => {
   try {
@@ -99,7 +110,6 @@ router.get("/:id", async (req: Request, res: Response) => {
 
     return res.json(user);
   } catch (error: any) {
-    console.error(error);
     return res.status(500).json({ message: "Erro ao obter o usuário", error: error.message });
   }
 });
@@ -109,23 +119,24 @@ router.get("/:id", async (req: Request, res: Response) => {
  * /users/{id}:
  *   put:
  *     summary: Atualizar usuário
- *     tags:
- *       - Usuários
+ *     tags: [Usuários]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UserInput'
  *     responses:
  *       200:
  *         description: Usuário atualizado
- *       400:
- *         description: Dados inválidos
  *       404:
  *         description: Não encontrado
- *       500:
- *         description: Erro ao atualizar
  */
 router.put("/:id", async (req: Request, res: Response) => {
   try {
@@ -141,11 +152,9 @@ router.put("/:id", async (req: Request, res: Response) => {
     const user = await userRepo.updateUser(id, nome, email, tipo_user);
     return res.json(user);
   } catch (error: any) {
-    console.error(error);
     const statusCode = error.message === "Usuário não encontrado" ? 404 : 500;
     return res.status(statusCode).json({
       message: error.message || "Erro ao atualizar o usuário",
-      error: error.message,
     });
   }
 });
@@ -155,8 +164,7 @@ router.put("/:id", async (req: Request, res: Response) => {
  * /users/{id}:
  *   delete:
  *     summary: Deletar usuário
- *     tags:
- *       - Usuários
+ *     tags: [Usuários]
  *     parameters:
  *       - in: path
  *         name: id
@@ -168,8 +176,6 @@ router.put("/:id", async (req: Request, res: Response) => {
  *         description: Deletado com sucesso
  *       404:
  *         description: Não encontrado
- *       500:
- *         description: Erro ao deletar
  */
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
@@ -177,11 +183,9 @@ router.delete("/:id", async (req: Request, res: Response) => {
     await userRepo.deleteUser(id);
     return res.status(204).send();
   } catch (error: any) {
-    console.error(error);
     const statusCode = error.message === "Usuário não encontrado" ? 404 : 500;
     return res.status(statusCode).json({
       message: error.message || "Erro ao deletar o usuário",
-      error: error.message,
     });
   }
 });
