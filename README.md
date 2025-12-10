@@ -11,6 +11,46 @@ Facilitar a administração do Clube do Café, automatizando tarefas manuais com
 
 ---
 
+## Como Executar o Projeto
+
+Para iniciar o servidor do Clube do Café, basta garantir que todas as dependências estão instaladas e que o ambiente foi configurado corretamente.
+
+---
+
+## 1. Instalação das Dependências
+
+Na raiz do projeto, execute:
+
+```bash
+npm install
+```
+## 2. Configuração do arquivo .env
+
+Crie um arquivo .env na raiz do projeto contendo:
+
+- DB_DIALECT=
+- DB_HOST=
+- DB_PORT=
+- DB_USER=
+- DB_PASS=
+- DB_NAME=
+- PORT=3000
+
+## 3. Executando o Servidor
+
+O projeto já possui um script configurado no package.json. Para executar o server:
+
+```bash
+npm run dev
+```
+
+Após iniciar, você deverá ver no terminal:
+```bash
+Servidor iniciado em http://localhost:3000
+Conectado ao banco de dados com sucesso!
+```
+---
+
 ## Funcionalidades Principais
 
 - **Gerenciamento de assinantes**
