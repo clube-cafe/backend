@@ -86,4 +86,24 @@ export class AssinaturaController {
       return res.status(statusCode).json({ message: error.message });
     }
   }
+
+  async createAssinaturaComPendencias(req: Request, res: Response) {
+    try {
+      const { user_id, valor, periodicidade, data_inicio, dia_vencimento } = req.body;
+      const resultado = await this.assinaturaService.createAssinaturaComPendencias(
+        user_id,
+        valor,
+        periodicidade,
+        new Date(data_inicio),
+        dia_vencimento
+      );
+      return res.status(201).json({
+        message: "Assinatura criada com sucesso!",
+        ...resultado,
+      });
+    } catch (error: any) {
+      console.error(error);
+      return res.status(400).json({ message: error.message });
+    }
+  }
 }
