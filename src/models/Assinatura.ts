@@ -11,11 +11,12 @@ export interface AssinaturaAttributes {
   status: STATUS_ASSINATURA;
   createdAt?: Date;
   updatedAt?: Date;
+  deletedAt?: Date | null;
 }
 
 export interface AssinaturaCreationAttributes extends Optional<
   AssinaturaAttributes,
-  "id" | "status" | "createdAt" | "updatedAt"
+  "id" | "status" | "createdAt" | "updatedAt" | "deletedAt"
 > {}
 
 export class Assinatura
@@ -30,6 +31,7 @@ export class Assinatura
   public status!: STATUS_ASSINATURA;
   public createdAt?: Date;
   public updatedAt?: Date;
+  public deletedAt?: Date | null;
 }
 
 Assinatura.init(
@@ -65,5 +67,6 @@ Assinatura.init(
     sequelize,
     tableName: "assinaturas",
     timestamps: true,
+    paranoid: true,
   }
 );

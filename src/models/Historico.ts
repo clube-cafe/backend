@@ -11,11 +11,12 @@ export interface HistoricoAttributes {
   descricao: string;
   createdAt?: Date;
   updatedAt?: Date;
+  deletedAt?: Date | null;
 }
 
 export interface HistoricoCreationAttributes extends Optional<
   HistoricoAttributes,
-  "id" | "createdAt" | "updatedAt"
+  "id" | "createdAt" | "updatedAt" | "deletedAt"
 > {}
 
 export class Historico
@@ -30,6 +31,7 @@ export class Historico
   public descricao!: string;
   public createdAt?: Date;
   public updatedAt?: Date;
+  public deletedAt?: Date | null;
 }
 
 Historico.init(
@@ -64,5 +66,6 @@ Historico.init(
     sequelize,
     tableName: "historicos",
     timestamps: true,
+    paranoid: true,
   }
 );

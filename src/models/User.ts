@@ -9,11 +9,12 @@ export interface UserAttributes {
   tipo_user: TIPO_USER;
   createdAt?: Date;
   updatedAt?: Date;
+  deletedAt?: Date | null;
 }
 
 export interface UserCreationAttributes extends Optional<
   UserAttributes,
-  "id" | "createdAt" | "updatedAt"
+  "id" | "createdAt" | "updatedAt" | "deletedAt"
 > {}
 
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
@@ -23,6 +24,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public tipo_user!: TIPO_USER;
   public createdAt?: Date;
   public updatedAt?: Date;
+  public deletedAt?: Date | null;
 }
 
 User.init(
@@ -50,5 +52,6 @@ User.init(
     sequelize,
     tableName: "users",
     timestamps: true,
+    paranoid: true,
   }
 );

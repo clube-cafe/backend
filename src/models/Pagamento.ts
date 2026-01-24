@@ -11,11 +11,12 @@ export interface PagamentoAttributes {
   observacao: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  deletedAt?: Date | null;
 }
 
 export interface PagamentoCreationAttributes extends Optional<
   PagamentoAttributes,
-  "id" | "observacao" | "createdAt" | "updatedAt"
+  "id" | "observacao" | "createdAt" | "updatedAt" | "deletedAt"
 > {}
 
 export class Pagamento
@@ -30,6 +31,7 @@ export class Pagamento
   public observacao!: string | null;
   public createdAt?: Date;
   public updatedAt?: Date;
+  public deletedAt?: Date | null;
 }
 
 Pagamento.init(
@@ -64,5 +66,6 @@ Pagamento.init(
     sequelize,
     tableName: "pagamentos",
     timestamps: true,
+    paranoid: true,
   }
 );
