@@ -4,6 +4,7 @@ import swaggerUi from "swagger-ui-express";
 import sequelize from "./config/database";
 import { specs } from "./swagger";
 import { setupRoutes } from "./config/routes";
+import { SchedulerJobs } from "./config/SchedulerJobs";
 import "./models";
 
 dotenv.config();
@@ -31,9 +32,12 @@ setupRoutes(app);
 sequelize
   .sync({ force: true })
   .then(() => {
+    SchedulerJobs.iniciarJobs();
+
     app.listen(PORT, () => {
       console.log(`Servidor rodando em http://localhost:${PORT}`);
       console.log(`Documentação: http://localhost:${PORT}/api-docs`);
+      console.log("[CRON] Jobs agendados iniciados");
     });
   })
   .catch((error) => {
