@@ -6,6 +6,7 @@ import pagamentosPendentesRouter from "../routes/pagamentosPendentes";
 import historicosRouter from "../routes/historicos";
 import userRelatedRouter from "../routes/userRelated";
 import queriesRouter from "../routes/queries";
+import dashboardRouter from "../routes/dashboard";
 
 export const setupRoutes = (app: Express) => {
   app.use("/users", usersRouter);
@@ -14,5 +15,6 @@ export const setupRoutes = (app: Express) => {
   app.use("/pagamentos-pendentes", pagamentosPendentesRouter);
   app.use("/historicos", historicosRouter);
   app.use("/users", userRelatedRouter);
+  app.use("/dashboard", dashboardRouter);
   app.use("/", queriesRouter);
 };
