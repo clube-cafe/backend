@@ -26,16 +26,6 @@ router.get("/", (req: Request, res: Response) => historicoController.getAllHisto
 
 /**
  * @swagger
- * /historicos/{id}:
- *   get:
- *     summary: Obter histórico por ID
- *     tags:
- *       - Histórico
- */
-router.get("/:id", (req: Request, res: Response) => historicoController.getHistoricoById(req, res));
-
-/**
- * @swagger
  * /historicos/tipo/{tipo}:
  *   get:
  *     summary: Listar histórico por tipo (ENTRADA/SAIDA)
@@ -44,28 +34,6 @@ router.get("/:id", (req: Request, res: Response) => historicoController.getHisto
  */
 router.get("/tipo/:tipo", (req: Request, res: Response) =>
   historicoController.getHistoricosByTipo(req, res)
-);
-
-/**
- * @swagger
- * /historicos/{id}:
- *   put:
- *     summary: Atualizar histórico
- *     tags:
- *       - Histórico
- */
-router.put("/:id", (req: Request, res: Response) => historicoController.updateHistorico(req, res));
-
-/**
- * @swagger
- * /historicos/{id}:
- *   delete:
- *     summary: Deletar histórico
- *     tags:
- *       - Histórico
- */
-router.delete("/:id", (req: Request, res: Response) =>
-  historicoController.deleteHistorico(req, res)
 );
 
 /**
@@ -101,5 +69,37 @@ router.get("/total/saidas", (req: Request, res: Response) =>
  *       - Histórico
  */
 router.get("/saldo", (req: Request, res: Response) => historicoController.getSaldoAtual(req, res));
+
+/**
+ * @swagger
+ * /historicos/{id}:
+ *   get:
+ *     summary: Obter histórico por ID
+ *     tags:
+ *       - Histórico
+ */
+router.get("/:id", (req: Request, res: Response) => historicoController.getHistoricoById(req, res));
+
+/**
+ * @swagger
+ * /historicos/{id}:
+ *   put:
+ *     summary: Atualizar histórico
+ *     tags:
+ *       - Histórico
+ */
+router.put("/:id", (req: Request, res: Response) => historicoController.updateHistorico(req, res));
+
+/**
+ * @swagger
+ * /historicos/{id}:
+ *   delete:
+ *     summary: Deletar histórico
+ *     tags:
+ *       - Histórico
+ */
+router.delete("/:id", (req: Request, res: Response) =>
+  historicoController.deleteHistorico(req, res)
+);
 
 export default router;
