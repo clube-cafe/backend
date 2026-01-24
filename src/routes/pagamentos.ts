@@ -22,6 +22,18 @@ router.post("/", (req: Request, res: Response) => pagamentoController.createPaga
 
 /**
  * @swagger
+ * /pagamentos/completo:
+ *   post:
+ *     summary: Registrar pagamento com atualização automática de pendência e histórico
+ *     tags:
+ *       - Pagamentos
+ */
+router.post("/completo", (req: Request, res: Response) =>
+  pagamentoController.registrarPagamentoCompleto(req, res)
+);
+
+/**
+ * @swagger
  * /pagamentos:
  *   get:
  *     summary: Listar todos os pagamentos

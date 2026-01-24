@@ -137,4 +137,26 @@ export class PagamentoController {
       return res.status(400).json({ message: error.message });
     }
   }
+
+  async registrarPagamentoCompleto(req: Request, res: Response) {
+    try {
+      const { user_id, valor, data_pagamento, forma_pagamento, observacao, pagamento_pendente_id } =
+        req.body;
+      const resultado = await this.pagamentoService.registrarPagamentoCompleto(
+        user_id,
+        valor,
+        new Date(data_pagamento),
+        forma_pagamento,
+        observacao,
+        pagamento_pendente_id
+      );
+      return res.status(201).json({
+        message: "Pagamento registrado e histórico criado automaticamente",
+        resultado,
+      });
+    } catch (error: any) {
+      console.error(error);
+      return res.status(400).json({ message: error.message });
+    }
+  }
 }
