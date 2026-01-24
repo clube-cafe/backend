@@ -5,6 +5,9 @@ import { PERIODO, STATUS, STATUS_ASSINATURA, TIPO } from "../models/enums";
 import { TransactionHelper } from "../config/TransactionHelper";
 import { Assinatura } from "../models/Assinatura";
 import { PagamentoPendente } from "../models/PagamentoPendente";
+import { Validators } from "../utils/Validators";
+import { ValidationError, NotFoundError, InternalServerError } from "../utils/Errors";
+import { Logger } from "../utils/Logger";
 
 export class AssinaturaService {
   private assinaturaRepository: AssinaturaRepository;
@@ -23,16 +26,25 @@ export class AssinaturaService {
     periodicidade: PERIODO,
     data_inicio: Date
   ) {
+    // Validações centralizadas
     if (!user_id || !valor || !periodicidade || !data_inicio) {
-      throw new Error("Campos obrigatórios: user_id, valor, periodicidade, data_inicio");
+      throw new ValidationError("Campos obrigatórios: user_id, valor, periodicidade, data_inicio");
     }
 
-    if (valor <= 0) {
-      throw new Error("Valor deve ser maior que zero");
+    if (!Validators.isValidUUID(user_id)) {
+      throw new ValidationError("user_id inválido");
+    }
+
+    if (!Validators.isValidMoney(valor)) {
+      throw new ValidationError("Valor deve ser um número positivo");
     }
 
     if (!Object.values(PERIODO).includes(periodicidade)) {
-      throw new Error("Periodicidade inválida");
+      throw new ValidationError("Periodicidade inválida: " + Object.values(PERIODO).join(", "));
+    }
+
+    if (!Validators.isValidDate(data_inicio)) {
+      throw new ValidationError("Data de início inválida");
     }
 
     return await this.assinaturaRepository.createAssinatura(
@@ -49,94 +61,179 @@ export class AssinaturaService {
     periodicidade: PERIODO,
     data_inicio: Date
   ) {
-    if (!user_id || !valor || !periodicidade || !data_inicio) {
-      throw new Error("Campos obrigatórios: user_id, valor, periodicidade, data_inicio");
+    if (!Validators.isValidUUID(user_id)) {
+      throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
     }
 
-    if (valor <= 0) {
-      throw new Error("Valor deve ser maior que zero");
+    if (!Validators.isValidMoney(valor)) {
+      throw new ValidationError("Valor deve ser um número positivo e finito");
     }
 
     if (!Object.values(PERIODO).includes(periodicidade)) {
-      throw new Error("Periodicidade inválida");
+      throw new ValidationError(
+        `Periodicidade inválida. Opções: ${Object.values(PERIODO).join(", ")}`
+      );
     }
 
-    return await TransactionHelper.executeTransaction(async (transaction) => {
-      return await this.assinaturaRepository.createAssinatura(
+    if (!Validators.isValidDate(data_inicio)) {
+      throw new ValidationError("data_inicio deve ser uma data válida");
+    }
+
+    try {
+      return await TransactionHelper.executeTransaction(async (transaction) => {
+        return await this.assinaturaRepository.createAssinatura(
+          user_id,
+          valor,
+          periodicidade,
+          data_inicio,
+          transaction
+        );
+      });
+    } catch (error) {
+      Logger.error("Erro ao criar assinatura com transação", {
         user_id,
         valor,
         periodicidade,
-        data_inicio,
-        transaction
-      );
-    });
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível criar a assinatura");
+    }
   }
 
   async getAllAssinaturas() {
-    return await this.assinaturaRepository.getAllAssinaturas();
+    try {
+      return await this.assinaturaRepository.getAllAssinaturas();
+    } catch (error) {
+      Logger.error("Erro ao buscar todas as assinaturas", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível buscar as assinaturas");
+    }
   }
 
   async getAssinaturaById(id: string) {
-    if (!id) {
-      throw new Error("ID é obrigatório");
+    if (!Validators.isValidUUID(id)) {
+      throw new ValidationError("ID é obrigatório e deve ser um UUID válido");
     }
 
-    const assinatura = await this.assinaturaRepository.getAssinaturaById(id);
-    if (!assinatura) {
-      throw new Error("Assinatura não encontrada");
-    }
+    try {
+      const assinatura = await this.assinaturaRepository.getAssinaturaById(id);
+      if (!assinatura) {
+        throw new NotFoundError("Assinatura não encontrada");
+      }
 
-    return assinatura;
+      return assinatura;
+    } catch (error) {
+      if (error instanceof NotFoundError) throw error;
+      Logger.error("Erro ao buscar assinatura por ID", {
+        id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível buscar a assinatura");
+    }
   }
 
   async getAssinaturasByUserId(user_id: string) {
-    if (!user_id) {
-      throw new Error("User ID é obrigatório");
+    if (!Validators.isValidUUID(user_id)) {
+      throw new ValidationError("User ID é obrigatório e deve ser um UUID válido");
     }
 
-    return await this.assinaturaRepository.getAssinaturasByUserId(user_id);
+    try {
+      return await this.assinaturaRepository.getAssinaturasByUserId(user_id);
+    } catch (error) {
+      Logger.error("Erro ao buscar assinaturas do usuário", {
+        user_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível buscar as assinaturas do usuário");
+    }
   }
 
   async updateAssinatura(id: string, valor?: number, periodicidade?: PERIODO, data_inicio?: Date) {
-    if (!id) {
-      throw new Error("ID é obrigatório");
+    if (!Validators.isValidUUID(id)) {
+      throw new ValidationError("ID é obrigatório e deve ser um UUID válido");
     }
 
-    if (valor !== undefined && valor <= 0) {
-      throw new Error("Valor deve ser maior que zero");
+    if (valor !== undefined && !Validators.isValidMoney(valor)) {
+      throw new ValidationError("Valor deve ser um número positivo e finito");
     }
 
     if (periodicidade && !Object.values(PERIODO).includes(periodicidade)) {
-      throw new Error("Periodicidade inválida");
+      throw new ValidationError(
+        `Periodicidade inválida. Opções: ${Object.values(PERIODO).join(", ")}`
+      );
     }
 
-    return await this.assinaturaRepository.updateAssinatura(id, valor, periodicidade, data_inicio);
+    if (data_inicio && !Validators.isValidDate(data_inicio)) {
+      throw new ValidationError("data_inicio deve ser uma data válida");
+    }
+
+    try {
+      return await this.assinaturaRepository.updateAssinatura(
+        id,
+        valor,
+        periodicidade,
+        data_inicio
+      );
+    } catch (error) {
+      Logger.error("Erro ao atualizar assinatura", {
+        id,
+        valor,
+        periodicidade,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível atualizar a assinatura");
+    }
   }
 
   async deleteAssinatura(id: string) {
-    if (!id) {
-      throw new Error("ID é obrigatório");
+    if (!Validators.isValidUUID(id)) {
+      throw new ValidationError("ID é obrigatório e deve ser um UUID válido");
     }
 
-    return await this.assinaturaRepository.deleteAssinatura(id);
+    try {
+      return await this.assinaturaRepository.deleteAssinatura(id);
+    } catch (error) {
+      Logger.error("Erro ao deletar assinatura", {
+        id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível deletar a assinatura");
+    }
   }
 
   async deleteAssinaturasByUserId(user_id: string) {
-    if (!user_id) {
-      throw new Error("User ID é obrigatório");
+    if (!Validators.isValidUUID(user_id)) {
+      throw new ValidationError("User ID é obrigatório e deve ser um UUID válido");
     }
 
-    return await this.assinaturaRepository.deleteAssinaturasByUserId(user_id);
+    try {
+      return await this.assinaturaRepository.deleteAssinaturasByUserId(user_id);
+    } catch (error) {
+      Logger.error("Erro ao deletar assinaturas do usuário", {
+        user_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível deletar as assinaturas do usuário");
+    }
   }
 
   async deleteAssinaturasByUserIdWithTransaction(user_id: string) {
-    if (!user_id) {
-      throw new Error("User ID é obrigatório");
+    if (!Validators.isValidUUID(user_id)) {
+      throw new ValidationError("User ID é obrigatório e deve ser um UUID válido");
     }
 
-    return await TransactionHelper.executeTransaction(async (transaction) => {
-      return await this.assinaturaRepository.deleteAssinaturasByUserId(user_id, transaction);
-    });
+    try {
+      return await TransactionHelper.executeTransaction(async (transaction) => {
+        return await this.assinaturaRepository.deleteAssinaturasByUserId(user_id, transaction);
+      });
+    } catch (error) {
+      Logger.error("Erro ao deletar assinaturas do usuário com transação", {
+        user_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível deletar as assinaturas do usuário");
+    }
   }
 
   /**
@@ -151,75 +248,98 @@ export class AssinaturaService {
     dia_vencimento?: number
   ) {
     // Validações
-    if (!user_id || !valor || !periodicidade || !data_inicio) {
-      throw new Error("Campos obrigatórios: user_id, valor, periodicidade, data_inicio");
+    if (!Validators.isValidUUID(user_id)) {
+      throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
     }
 
-    if (valor <= 0) {
-      throw new Error("Valor deve ser maior que zero");
+    if (!Validators.isValidMoney(valor)) {
+      throw new ValidationError("Valor deve ser um número positivo e finito");
     }
 
     if (!Object.values(PERIODO).includes(periodicidade)) {
-      throw new Error("Periodicidade inválida");
+      throw new ValidationError(
+        `Periodicidade inválida. Opções: ${Object.values(PERIODO).join(", ")}`
+      );
+    }
+
+    if (!Validators.isValidDate(data_inicio)) {
+      throw new ValidationError("data_inicio deve ser uma data válida");
     }
 
     // Define dia de vencimento (padrão: 10)
     const diaVencimento = dia_vencimento || 10;
 
-    if (diaVencimento < 1 || diaVencimento > 28) {
-      throw new Error("Dia de vencimento deve estar entre 1 e 28");
+    if (!Validators.isValidDay(diaVencimento) || diaVencimento > 28) {
+      throw new ValidationError("Dia de vencimento deve estar entre 1 e 28");
     }
 
-    return await TransactionHelper.executeTransaction(async (transaction) => {
-      // 1. Cria a assinatura
-      const assinatura = await this.assinaturaRepository.createAssinatura(
-        user_id,
-        valor,
-        periodicidade,
-        data_inicio,
-        transaction
-      );
-
-      // 2. Calcula número de pendências baseado na periodicidade
-      const numeroPendencias = this.calcularNumeroPendencias(periodicidade);
-      const mesesEntrePagamentos = this.calcularMesesEntrePagamentos(periodicidade);
-
-      // 3. Gera todas as pendências
-      const pendencias = [];
-      const dataBase = new Date(data_inicio);
-
-      for (let i = 0; i < numeroPendencias; i++) {
-        // Calcula data de vencimento
-        const dataVencimento = new Date(dataBase);
-        dataVencimento.setMonth(dataBase.getMonth() + i * mesesEntrePagamentos);
-        dataVencimento.setDate(diaVencimento);
-
-        // Define descrição baseada no período
-        const descricao = this.gerarDescricaoPendencia(periodicidade, dataVencimento, i + 1);
-
-        // Cria pendência
-        await this.pagamentoPendenteRepository.createPagamentoPendente(
+    try {
+      return await TransactionHelper.executeTransaction(async (transaction) => {
+        // 1. Cria a assinatura
+        const assinatura = await this.assinaturaRepository.createAssinatura(
           user_id,
           valor,
-          dataVencimento,
-          descricao,
-          STATUS.PENDENTE,
+          periodicidade,
+          data_inicio,
           transaction
         );
 
-        pendencias.push({
-          valor,
-          data_vencimento: dataVencimento,
-          descricao,
-        });
-      }
+        // 2. Calcula número de pendências baseado na periodicidade
+        const numeroPendencias = this.calcularNumeroPendencias(periodicidade);
+        const mesesEntrePagamentos = this.calcularMesesEntrePagamentos(periodicidade);
 
-      return {
-        assinatura,
-        pendencias_geradas: pendencias.length,
-        pendencias,
-      };
-    });
+        // 3. Gera todas as pendências
+        const pendencias = [];
+        const dataBase = new Date(data_inicio);
+
+        for (let i = 0; i < numeroPendencias; i++) {
+          // Calcula data de vencimento
+          const dataVencimento = new Date(dataBase);
+          dataVencimento.setMonth(dataBase.getMonth() + i * mesesEntrePagamentos);
+          dataVencimento.setDate(diaVencimento);
+
+          // Define descrição baseada no período
+          const descricao = this.gerarDescricaoPendencia(periodicidade, dataVencimento, i + 1);
+
+          // Cria pendência
+          await this.pagamentoPendenteRepository.createPagamentoPendente(
+            user_id,
+            valor,
+            dataVencimento,
+            descricao,
+            STATUS.PENDENTE,
+            transaction
+          );
+
+          pendencias.push({
+            valor,
+            data_vencimento: dataVencimento,
+            descricao,
+          });
+        }
+
+        Logger.info("Assinatura criada com pendências", {
+          user_id,
+          numeroAssinatura: assinatura.id,
+          numeroPendencias: pendencias.length,
+        });
+
+        return {
+          assinatura,
+          pendencias_geradas: pendencias.length,
+          pendencias,
+        };
+      });
+    } catch (error) {
+      if (error instanceof ValidationError) throw error;
+      Logger.error("Erro ao criar assinatura com pendências", {
+        user_id,
+        valor,
+        periodicidade,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível criar a assinatura com pendências");
+    }
   }
 
   /**
@@ -236,7 +356,7 @@ export class AssinaturaService {
       case PERIODO.ANUAL:
         return 1; // 1 ano
       default:
-        throw new Error("Periodicidade inválida");
+        throw new ValidationError(`Periodicidade inválida: ${periodicidade}`);
     }
   }
 
@@ -254,7 +374,7 @@ export class AssinaturaService {
       case PERIODO.ANUAL:
         return 12;
       default:
-        throw new Error("Periodicidade inválida");
+        throw new ValidationError(`Periodicidade inválida: ${periodicidade}`);
     }
   }
 

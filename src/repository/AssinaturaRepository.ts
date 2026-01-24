@@ -1,6 +1,8 @@
 import { Assinatura } from "../models/Assinatura";
 import { PERIODO } from "../models/enums";
 import { Transaction } from "sequelize";
+import { Logger } from "../utils/Logger";
+import { NotFoundError } from "../utils/Errors";
 
 export class AssinaturaRepository {
   async createAssinatura(
@@ -19,6 +21,11 @@ export class AssinaturaRepository {
       },
       { transaction }
     );
+
+    Logger.debug("Assinatura criada no repositório", {
+      assinaturaId: assinatura.id,
+      user_id,
+    });
 
     return assinatura;
   }
@@ -46,7 +53,7 @@ export class AssinaturaRepository {
   ) {
     const assinatura = await Assinatura.findByPk(id, { transaction });
     if (!assinatura) {
-      throw new Error("Assinatura não encontrada");
+      throw new NotFoundError("Assinatura não encontrada");
     }
 
     if (valor !== undefined) assinatura.valor = valor;
@@ -54,16 +61,22 @@ export class AssinaturaRepository {
     if (data_inicio) assinatura.data_inicio = data_inicio;
 
     await assinatura.save({ transaction });
+
+    Logger.debug("Assinatura atualizada no repositório", { assinaturaId: id });
+
     return assinatura;
   }
 
   async deleteAssinatura(id: string, transaction?: Transaction) {
     const assinatura = await Assinatura.findByPk(id, { transaction });
     if (!assinatura) {
-      throw new Error("Assinatura não encontrada");
+      throw new NotFoundError("Assinatura não encontrada");
     }
 
     await assinatura.destroy({ transaction });
+
+    Logger.debug("Assinatura deletada no repositório", { assinaturaId: id });
+
     return true;
   }
 

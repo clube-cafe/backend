@@ -3,6 +3,9 @@ import { PagamentoPendenteRepository } from "../repository/PagamentoPendenteRepo
 import { HistoricoRepository } from "../repository/HistoricoRepository";
 import { PAGAMENTO_ENUM, STATUS, TIPO } from "../models/enums";
 import { TransactionHelper } from "../config/TransactionHelper";
+import { Validators } from "../utils/Validators";
+import { Logger } from "../utils/Logger";
+import { ValidationError, NotFoundError, InternalServerError } from "../utils/Errors";
 
 export class PagamentoService {
   private pagamentoRepository: PagamentoRepository;
@@ -22,25 +25,52 @@ export class PagamentoService {
     forma_pagamento: PAGAMENTO_ENUM,
     observacao?: string
   ) {
-    if (!user_id || !valor || !data_pagamento || !forma_pagamento) {
-      throw new Error("Campos obrigatórios: user_id, valor, data_pagamento, forma_pagamento");
+    if (!Validators.isValidUUID(user_id)) {
+      throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
     }
 
-    if (valor <= 0) {
-      throw new Error("Valor deve ser maior que zero");
+    if (!Validators.isValidMoney(valor)) {
+      throw new ValidationError("Valor deve ser um número positivo e finito");
+    }
+
+    if (!Validators.isValidDate(data_pagamento)) {
+      throw new ValidationError("data_pagamento deve ser uma data válida");
     }
 
     if (!Object.values(PAGAMENTO_ENUM).includes(forma_pagamento)) {
-      throw new Error("Forma de pagamento inválida");
+      throw new ValidationError(
+        `Forma de pagamento inválida. Opções: ${Object.values(PAGAMENTO_ENUM).join(", ")}`
+      );
     }
 
-    return await this.pagamentoRepository.createPagamento(
-      user_id,
-      valor,
-      data_pagamento,
-      forma_pagamento,
-      observacao
-    );
+    if (observacao && !Validators.isValidString(observacao, 0, 255)) {
+      throw new ValidationError("Observação deve ter entre 0 e 255 caracteres");
+    }
+
+    try {
+      const pagamento = await this.pagamentoRepository.createPagamento(
+        user_id,
+        valor,
+        data_pagamento,
+        forma_pagamento,
+        observacao ? Validators.sanitizeString(observacao) : undefined
+      );
+
+      Logger.info("Pagamento criado com sucesso", {
+        pagamentoId: pagamento.id,
+        user_id,
+        valor,
+      });
+
+      return pagamento;
+    } catch (error) {
+      Logger.error("Erro ao criar pagamento", {
+        user_id,
+        valor,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível criar o pagamento");
+    }
   }
 
   async createPagamentoWithTransaction(
@@ -50,77 +80,136 @@ export class PagamentoService {
     forma_pagamento: PAGAMENTO_ENUM,
     observacao?: string
   ) {
-    if (!user_id || !valor || !data_pagamento || !forma_pagamento) {
-      throw new Error("Campos obrigatórios: user_id, valor, data_pagamento, forma_pagamento");
+    if (!Validators.isValidUUID(user_id)) {
+      throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
     }
 
-    if (valor <= 0) {
-      throw new Error("Valor deve ser maior que zero");
+    if (!Validators.isValidMoney(valor)) {
+      throw new ValidationError("Valor deve ser um número positivo e finito");
+    }
+
+    if (!Validators.isValidDate(data_pagamento)) {
+      throw new ValidationError("data_pagamento deve ser uma data válida");
     }
 
     if (!Object.values(PAGAMENTO_ENUM).includes(forma_pagamento)) {
-      throw new Error("Forma de pagamento inválida");
+      throw new ValidationError(
+        `Forma de pagamento inválida. Opções: ${Object.values(PAGAMENTO_ENUM).join(", ")}`
+      );
     }
 
-    return await TransactionHelper.executeTransaction(async (transaction) => {
-      return await this.pagamentoRepository.createPagamento(
+    if (observacao && !Validators.isValidString(observacao, 0, 255)) {
+      throw new ValidationError("Observação deve ter entre 0 e 255 caracteres");
+    }
+
+    try {
+      return await TransactionHelper.executeTransaction(async (transaction) => {
+        return await this.pagamentoRepository.createPagamento(
+          user_id,
+          valor,
+          data_pagamento,
+          forma_pagamento,
+          observacao ? Validators.sanitizeString(observacao) : undefined,
+          transaction
+        );
+      });
+    } catch (error) {
+      if (error instanceof ValidationError) throw error;
+      Logger.error("Erro ao criar pagamento com transação", {
         user_id,
         valor,
-        data_pagamento,
-        forma_pagamento,
-        observacao,
-        transaction
-      );
-    });
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível criar o pagamento");
+    }
   }
 
   async getAllPagamentos() {
-    return await this.pagamentoRepository.getAllPagamentos();
+    try {
+      return await this.pagamentoRepository.getAllPagamentos();
+    } catch (error) {
+      Logger.error("Erro ao buscar todos os pagamentos", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível buscar os pagamentos");
+    }
   }
 
   async getPagamentoById(id: string) {
-    if (!id) {
-      throw new Error("ID é obrigatório");
+    if (!Validators.isValidUUID(id)) {
+      throw new ValidationError("ID é obrigatório e deve ser um UUID válido");
     }
 
-    const pagamento = await this.pagamentoRepository.getPagamentoById(id);
-    if (!pagamento) {
-      throw new Error("Pagamento não encontrado");
-    }
+    try {
+      const pagamento = await this.pagamentoRepository.getPagamentoById(id);
+      if (!pagamento) {
+        throw new NotFoundError("Pagamento não encontrado");
+      }
 
-    return pagamento;
+      return pagamento;
+    } catch (error) {
+      if (error instanceof NotFoundError) throw error;
+      Logger.error("Erro ao buscar pagamento por ID", {
+        id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível buscar o pagamento");
+    }
   }
 
   async getPagamentosByUserId(user_id: string) {
-    if (!user_id) {
-      throw new Error("User ID é obrigatório");
+    if (!Validators.isValidUUID(user_id)) {
+      throw new ValidationError("User ID é obrigatório e deve ser um UUID válido");
     }
 
-    return await this.pagamentoRepository.getPagamentosByUserId(user_id);
+    try {
+      return await this.pagamentoRepository.getPagamentosByUserId(user_id);
+    } catch (error) {
+      Logger.error("Erro ao buscar pagamentos do usuário", {
+        user_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível buscar os pagamentos do usuário");
+    }
   }
 
   async getPagamentosByForma(forma_pagamento: PAGAMENTO_ENUM) {
-    if (!forma_pagamento) {
-      throw new Error("Forma de pagamento é obrigatória");
-    }
-
     if (!Object.values(PAGAMENTO_ENUM).includes(forma_pagamento)) {
-      throw new Error("Forma de pagamento inválida");
+      throw new ValidationError(
+        `Forma de pagamento inválida. Opções: ${Object.values(PAGAMENTO_ENUM).join(", ")}`
+      );
     }
 
-    return await this.pagamentoRepository.getPagamentosByFormaPagamento(forma_pagamento);
+    try {
+      return await this.pagamentoRepository.getPagamentosByFormaPagamento(forma_pagamento);
+    } catch (error) {
+      Logger.error("Erro ao buscar pagamentos por forma", {
+        forma_pagamento,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível buscar os pagamentos por forma de pagamento");
+    }
   }
 
   async getPagamentosByDateRange(data_inicio: Date, data_fim: Date) {
-    if (!data_inicio || !data_fim) {
-      throw new Error("Data de início e fim são obrigatórias");
+    if (!Validators.isValidDate(data_inicio) || !Validators.isValidDate(data_fim)) {
+      throw new ValidationError("Data de início e fim são obrigatórias e devem ser datas válidas");
     }
 
     if (data_inicio > data_fim) {
-      throw new Error("Data de início não pode ser maior que data de fim");
+      throw new ValidationError("Data de início não pode ser maior que data de fim");
     }
 
-    return await this.pagamentoRepository.getPagamentosByPeriodo(data_inicio, data_fim);
+    try {
+      return await this.pagamentoRepository.getPagamentosByPeriodo(data_inicio, data_fim);
+    } catch (error) {
+      Logger.error("Erro ao buscar pagamentos por período", {
+        data_inicio,
+        data_fim,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível buscar os pagamentos por período");
+    }
   }
 
   async updatePagamento(
@@ -130,63 +219,121 @@ export class PagamentoService {
     forma_pagamento?: PAGAMENTO_ENUM,
     observacao?: string
   ) {
-    if (!id) {
-      throw new Error("ID é obrigatório");
+    if (!Validators.isValidUUID(id)) {
+      throw new ValidationError("ID é obrigatório e deve ser um UUID válido");
     }
 
-    if (valor !== undefined && valor <= 0) {
-      throw new Error("Valor deve ser maior que zero");
+    if (valor !== undefined && !Validators.isValidMoney(valor)) {
+      throw new ValidationError("Valor deve ser um número positivo e finito");
+    }
+
+    if (data_pagamento && !Validators.isValidDate(data_pagamento)) {
+      throw new ValidationError("data_pagamento deve ser uma data válida");
     }
 
     if (forma_pagamento && !Object.values(PAGAMENTO_ENUM).includes(forma_pagamento)) {
-      throw new Error("Forma de pagamento inválida");
+      throw new ValidationError(
+        `Forma de pagamento inválida. Opções: ${Object.values(PAGAMENTO_ENUM).join(", ")}`
+      );
     }
 
-    return await this.pagamentoRepository.updatePagamento(
-      id,
-      valor,
-      data_pagamento,
-      forma_pagamento,
-      observacao
-    );
+    if (observacao && !Validators.isValidString(observacao, 0, 255)) {
+      throw new ValidationError("Observação deve ter entre 0 e 255 caracteres");
+    }
+
+    try {
+      return await this.pagamentoRepository.updatePagamento(
+        id,
+        valor,
+        data_pagamento,
+        forma_pagamento,
+        observacao ? Validators.sanitizeString(observacao) : undefined
+      );
+    } catch (error) {
+      Logger.error("Erro ao atualizar pagamento", {
+        id,
+        valor,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível atualizar o pagamento");
+    }
   }
 
   async deletePagamento(id: string) {
-    if (!id) {
-      throw new Error("ID é obrigatório");
+    if (!Validators.isValidUUID(id)) {
+      throw new ValidationError("ID é obrigatório e deve ser um UUID válido");
     }
 
-    return await this.pagamentoRepository.deletePagamento(id);
+    try {
+      return await this.pagamentoRepository.deletePagamento(id);
+    } catch (error) {
+      Logger.error("Erro ao deletar pagamento", {
+        id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível deletar o pagamento");
+    }
   }
 
   async deletePagamentosByUserId(user_id: string) {
-    if (!user_id) {
-      throw new Error("User ID é obrigatório");
+    if (!Validators.isValidUUID(user_id)) {
+      throw new ValidationError("User ID é obrigatório e deve ser um UUID válido");
     }
 
-    return await this.pagamentoRepository.deletePagamentosByUserId(user_id);
+    try {
+      return await this.pagamentoRepository.deletePagamentosByUserId(user_id);
+    } catch (error) {
+      Logger.error("Erro ao deletar pagamentos do usuário", {
+        user_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível deletar os pagamentos do usuário");
+    }
   }
 
   async deletePagamentosByUserIdWithTransaction(user_id: string) {
-    if (!user_id) {
-      throw new Error("User ID é obrigatório");
+    if (!Validators.isValidUUID(user_id)) {
+      throw new ValidationError("User ID é obrigatório e deve ser um UUID válido");
     }
 
-    return await TransactionHelper.executeTransaction(async (transaction) => {
-      return await this.pagamentoRepository.deletePagamentosByUserId(user_id, transaction);
-    });
+    try {
+      return await TransactionHelper.executeTransaction(async (transaction) => {
+        return await this.pagamentoRepository.deletePagamentosByUserId(user_id, transaction);
+      });
+    } catch (error) {
+      Logger.error("Erro ao deletar pagamentos do usuário com transação", {
+        user_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível deletar os pagamentos do usuário");
+    }
   }
 
   async getTotalPagamentos() {
-    return await this.pagamentoRepository.getTotalPagamentos();
+    try {
+      return await this.pagamentoRepository.getTotalPagamentos();
+    } catch (error) {
+      Logger.error("Erro ao calcular total de pagamentos", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível calcular o total de pagamentos");
+    }
   }
 
   async getTotalPagamentosByUser(user_id: string) {
-    if (!user_id) {
-      throw new Error("User ID é obrigatório");
+    if (!Validators.isValidUUID(user_id)) {
+      throw new ValidationError("User ID é obrigatório e deve ser um UUID válido");
     }
 
-    return await this.pagamentoRepository.getTotalPagamentosByUser(user_id);
+    try {
+      return await this.pagamentoRepository.getTotalPagamentosByUser(user_id);
+    } catch (error) {
+      Logger.error("Erro ao calcular total de pagamentos do usuário", {
+        user_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível calcular o total de pagamentos do usuário");
+    }
   }
 
   async registrarPagamentoCompleto(
@@ -197,67 +344,99 @@ export class PagamentoService {
     observacao?: string,
     pagamento_pendente_id?: string
   ) {
-    if (!user_id || !valor || !data_pagamento || !forma_pagamento) {
-      throw new Error("Campos obrigatórios: user_id, valor, data_pagamento, forma_pagamento");
+    // Validações
+    if (!Validators.isValidUUID(user_id)) {
+      throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
     }
 
-    if (valor <= 0) {
-      throw new Error("Valor deve ser maior que zero");
+    if (!Validators.isValidMoney(valor)) {
+      throw new ValidationError("Valor deve ser um número positivo e finito");
+    }
+
+    if (!Validators.isValidDate(data_pagamento)) {
+      throw new ValidationError("data_pagamento deve ser uma data válida");
     }
 
     if (!Object.values(PAGAMENTO_ENUM).includes(forma_pagamento)) {
-      throw new Error("Forma de pagamento inválida");
+      throw new ValidationError(
+        `Forma de pagamento inválida. Opções: ${Object.values(PAGAMENTO_ENUM).join(", ")}`
+      );
     }
 
-    return await TransactionHelper.executeTransaction(async (transaction) => {
-      const pagamento = await this.pagamentoRepository.createPagamento(
+    if (pagamento_pendente_id && !Validators.isValidUUID(pagamento_pendente_id)) {
+      throw new ValidationError("pagamento_pendente_id deve ser um UUID válido");
+    }
+
+    if (observacao && !Validators.isValidString(observacao, 0, 255)) {
+      throw new ValidationError("Observação deve ter entre 0 e 255 caracteres");
+    }
+
+    try {
+      return await TransactionHelper.executeTransaction(async (transaction) => {
+        const pagamento = await this.pagamentoRepository.createPagamento(
+          user_id,
+          valor,
+          data_pagamento,
+          forma_pagamento,
+          observacao ? Validators.sanitizeString(observacao) : undefined,
+          transaction
+        );
+
+        let descricaoPendente = "Pagamento Manual";
+
+        if (pagamento_pendente_id) {
+          const pendente =
+            await this.pagamentoPendenteRepository.getPagamentoPendenteById(pagamento_pendente_id);
+
+          if (pendente) {
+            descricaoPendente = pendente.descricao;
+            await this.pagamentoPendenteRepository.updateStatusPagamentoPendente(
+              pagamento_pendente_id,
+              STATUS.CANCELADO,
+              transaction
+            );
+          }
+        } else {
+          const pendentes =
+            await this.pagamentoPendenteRepository.getPagamentosPendentesByUserId(user_id);
+          const pendente = pendentes.find((p) => p.valor === valor && p.status === STATUS.PENDENTE);
+
+          if (pendente) {
+            descricaoPendente = pendente.descricao;
+            await this.pagamentoPendenteRepository.updateStatusPagamentoPendente(
+              pendente.id,
+              STATUS.CANCELADO,
+              transaction
+            );
+          }
+        }
+
+        await this.historicoRepository.createHistorico(
+          user_id,
+          TIPO.ENTRADA,
+          valor,
+          data_pagamento,
+          `Pagamento ${forma_pagamento} - ${descricaoPendente}`,
+          transaction
+        );
+
+        Logger.info("Pagamento completo registrado com sucesso", {
+          pagamentoId: pagamento.id,
+          user_id,
+          valor,
+          forma_pagamento,
+        });
+
+        return pagamento;
+      });
+    } catch (error) {
+      if (error instanceof ValidationError) throw error;
+      Logger.error("Erro ao registrar pagamento completo", {
         user_id,
         valor,
-        data_pagamento,
-        forma_pagamento,
-        observacao,
-        transaction
-      );
-
-      let descricaoPendente = "Pagamento Manual";
-
-      if (pagamento_pendente_id) {
-        const pendente =
-          await this.pagamentoPendenteRepository.getPagamentoPendenteById(pagamento_pendente_id);
-
-        if (pendente) {
-          descricaoPendente = pendente.descricao;
-          await this.pagamentoPendenteRepository.updateStatusPagamentoPendente(
-            pagamento_pendente_id,
-            STATUS.CANCELADO,
-            transaction
-          );
-        }
-      } else {
-        const pendentes =
-          await this.pagamentoPendenteRepository.getPagamentosPendentesByUserId(user_id);
-        const pendente = pendentes.find((p) => p.valor === valor && p.status === STATUS.PENDENTE);
-
-        if (pendente) {
-          descricaoPendente = pendente.descricao;
-          await this.pagamentoPendenteRepository.updateStatusPagamentoPendente(
-            pendente.id,
-            STATUS.CANCELADO,
-            transaction
-          );
-        }
-      }
-
-      await this.historicoRepository.createHistorico(
-        user_id,
-        TIPO.ENTRADA,
-        valor,
-        data_pagamento,
-        `Pagamento ${forma_pagamento} - ${descricaoPendente}`,
-        transaction
-      );
-
-      return pagamento;
-    });
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível registrar o pagamento completo");
+    }
   }
 }

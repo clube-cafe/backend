@@ -1,4 +1,11 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-npx lint-staged
+echo "🔍 Executando lint e build antes do commit..."
+npm run lint && npm run build
+if [ $? -ne 0 ]; then
+  echo "❌ Lint ou build falharam. Commit cancelado."
+  exit 1
+fi
+
+echo "✅ Lint e build passaram com sucesso!"
