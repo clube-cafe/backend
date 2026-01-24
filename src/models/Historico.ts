@@ -9,9 +9,14 @@ export interface HistoricoAttributes {
   valor: number;
   data: Date;
   descricao: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-export interface HistoricoCreationAttributes extends Optional<HistoricoAttributes, "id"> {}
+export interface HistoricoCreationAttributes extends Optional<
+  HistoricoAttributes,
+  "id" | "createdAt" | "updatedAt"
+> {}
 
 export class Historico
   extends Model<HistoricoAttributes, HistoricoCreationAttributes>
@@ -23,6 +28,8 @@ export class Historico
   public valor!: number;
   public data!: Date;
   public descricao!: string;
+  public createdAt?: Date;
+  public updatedAt?: Date;
 }
 
 Historico.init(
@@ -56,6 +63,6 @@ Historico.init(
   {
     sequelize,
     tableName: "historicos",
-    timestamps: false,
+    timestamps: true,
   }
 );

@@ -7,15 +7,22 @@ export interface UserAttributes {
   nome: string;
   email: string;
   tipo_user: TIPO_USER;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-export interface UserCreationAttributes extends Optional<UserAttributes, "id"> {}
+export interface UserCreationAttributes extends Optional<
+  UserAttributes,
+  "id" | "createdAt" | "updatedAt"
+> {}
 
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: string;
   public nome!: string;
   public email!: string;
   public tipo_user!: TIPO_USER;
+  public createdAt?: Date;
+  public updatedAt?: Date;
 }
 
 User.init(
@@ -42,6 +49,6 @@ User.init(
   {
     sequelize,
     tableName: "users",
-    timestamps: false,
+    timestamps: true,
   }
 );

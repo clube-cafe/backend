@@ -9,11 +9,13 @@ export interface AssinaturaAttributes {
   periodicidade: PERIODO;
   data_inicio: Date;
   status: STATUS_ASSINATURA;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface AssinaturaCreationAttributes extends Optional<
   AssinaturaAttributes,
-  "id" | "status"
+  "id" | "status" | "createdAt" | "updatedAt"
 > {}
 
 export class Assinatura
@@ -26,6 +28,8 @@ export class Assinatura
   public periodicidade!: PERIODO;
   public data_inicio!: Date;
   public status!: STATUS_ASSINATURA;
+  public createdAt?: Date;
+  public updatedAt?: Date;
 }
 
 Assinatura.init(
@@ -60,6 +64,6 @@ Assinatura.init(
   {
     sequelize,
     tableName: "assinaturas",
-    timestamps: false,
+    timestamps: true,
   }
 );

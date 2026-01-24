@@ -9,11 +9,13 @@ export interface PagamentoPendenteAttributes {
   data_vencimento: Date;
   descricao: string;
   status: STATUS;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface PagamentoPendenteCreationAttributes extends Optional<
   PagamentoPendenteAttributes,
-  "id"
+  "id" | "createdAt" | "updatedAt"
 > {}
 
 export class PagamentoPendente
@@ -26,6 +28,8 @@ export class PagamentoPendente
   public data_vencimento!: Date;
   public descricao!: string;
   public status!: STATUS;
+  public createdAt?: Date;
+  public updatedAt?: Date;
 }
 
 PagamentoPendente.init(
@@ -60,6 +64,6 @@ PagamentoPendente.init(
   {
     sequelize,
     tableName: "pagamentos_pendentes",
-    timestamps: false,
+    timestamps: true,
   }
 );
