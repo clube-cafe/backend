@@ -1,15 +1,20 @@
 import { AssinaturaRepository } from "../repository/AssinaturaRepository";
 import { PagamentoPendenteRepository } from "../repository/PagamentoPendenteRepository";
-import { PERIODO, STATUS } from "../models/enums";
+import { HistoricoRepository } from "../repository/HistoricoRepository";
+import { PERIODO, STATUS, STATUS_ASSINATURA, TIPO } from "../models/enums";
 import { TransactionHelper } from "../config/TransactionHelper";
+import { Assinatura } from "../models/Assinatura";
+import { PagamentoPendente } from "../models/PagamentoPendente";
 
 export class AssinaturaService {
   private assinaturaRepository: AssinaturaRepository;
   private pagamentoPendenteRepository: PagamentoPendenteRepository;
+  private historicoRepository: HistoricoRepository;
 
   constructor() {
     this.assinaturaRepository = new AssinaturaRepository();
     this.pagamentoPendenteRepository = new PagamentoPendenteRepository();
+    this.historicoRepository = new HistoricoRepository();
   }
 
   async createAssinatura(
@@ -261,7 +266,10 @@ export class AssinaturaService {
     dataVencimento: Date,
     numero: number
   ): string {
-    const mes = dataVencimento.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    const mes = dataVencimento.toLocaleDateString("pt-BR", {
+      month: "long",
+      year: "numeric",
+    });
     const mesCapitalizado = mes.charAt(0).toUpperCase() + mes.slice(1);
 
     switch (periodicidade) {
@@ -276,5 +284,82 @@ export class AssinaturaService {
       default:
         return `Assinatura - ${mesCapitalizado}`;
     }
+  }
+
+  /**
+   * Cancela uma assinatura, limpa todas as pendências futuras e registra no histórico
+   */
+  async cancelarAssinatura(assinatura_id: string, motivo?: string) {
+    if (!assinatura_id) {
+      throw new Error("ID da assinatura é obrigatório");
+    }
+
+    return await TransactionHelper.executeTransaction(async (transaction) => {
+      // 1. Busca a assinatura
+      const assinatura = (await Assinatura.findByPk(assinatura_id, {
+        transaction,
+      })) as any;
+
+      if (!assinatura) {
+        throw new Error("Assinatura não encontrada");
+      }
+
+      if (assinatura.status === STATUS_ASSINATURA.CANCELADA) {
+        throw new Error("Assinatura já foi cancelada");
+      }
+
+      // 2. Conta pendências que serão canceladas
+      const pendenciasPendentes = await PagamentoPendente.findAll({
+        where: {
+          status: [STATUS.PENDENTE, STATUS.ATRASADO],
+        },
+        transaction,
+      });
+
+      const pendenciasParaCancelar = pendenciasPendentes.filter(
+        (p: any) => p.user_id === assinatura.user_id
+      );
+
+      const valorCancelado = pendenciasParaCancelar.reduce(
+        (sum: number, p: any) => sum + parseFloat(p.valor as any),
+        0
+      );
+
+      // 3. Atualiza todas as pendências para CANCELADO
+      await Promise.all(
+        pendenciasParaCancelar.map((p: any) =>
+          p.update({ status: STATUS.CANCELADO }, { transaction })
+        )
+      );
+
+      // 4. Atualiza o status da assinatura para CANCELADA
+      assinatura.status = STATUS_ASSINATURA.CANCELADA;
+      await assinatura.save({ transaction });
+
+      // 5. Cria entry de histórico com a saída
+      const descricaoHistorico = motivo
+        ? `Cancelamento de assinatura - ${motivo}`
+        : "Cancelamento de assinatura";
+
+      await this.historicoRepository.createHistorico(
+        assinatura.user_id,
+        TIPO.SAIDA,
+        valorCancelado,
+        new Date(),
+        descricaoHistorico,
+        transaction
+      );
+
+      return {
+        message: "Assinatura cancelada com sucesso",
+        resultado: {
+          assinatura_id,
+          status: STATUS_ASSINATURA.CANCELADA,
+          pendencias_canceladas: pendenciasParaCancelar.length,
+          valor_pendente_cancelado: valorCancelado,
+          historico_registrado: true,
+        },
+      };
+    });
   }
 }

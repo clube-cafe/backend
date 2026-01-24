@@ -123,14 +123,39 @@ router.put("/:id", (req: Request, res: Response) =>
 
 /**
  * @swagger
- * /assinaturas/{id}:
- *   delete:
- *     summary: Deletar assinatura
+ * /assinaturas/{assinatura_id}/cancelar:
+ *   post:
+ *     summary: Cancelar assinatura
+ *     description: Cancela uma assinatura ativa, invalida todas as pendências pendentes/atrasadas e registra no histórico
  *     tags:
  *       - Assinaturas
+ *     parameters:
+ *       - in: path
+ *         name: assinatura_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               motivo:
+ *                 type: string
+ *                 example: "Cliente solicitou cancelamento"
+ *     responses:
+ *       200:
+ *         description: Assinatura cancelada com sucesso
+ *       404:
+ *         description: Assinatura não encontrada
+ *       400:
+ *         description: Erro ao cancelar
  */
-router.delete("/:id", (req: Request, res: Response) =>
-  assinaturaController.deleteAssinatura(req, res)
+router.post("/:assinatura_id/cancelar", (req: Request, res: Response) =>
+  assinaturaController.cancelarAssinatura(req, res)
 );
 
 export default router;

@@ -16,6 +16,11 @@ export enum STATUS {
   CANCELADO = "CANCELADO",
 }
 
+export enum STATUS_ASSINATURA {
+  ATIVA = "ATIVA",
+  CANCELADA = "CANCELADA",
+}
+
 export enum PAGAMENTO_ENUM {
   PIX = "PIX",
   CARTAO = "CARTAO",

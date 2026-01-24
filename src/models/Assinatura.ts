@@ -1,6 +1,6 @@
 import { Model, DataTypes, Optional } from "sequelize";
 import sequelize from "../config/database";
-import { PERIODO } from "./enums";
+import { PERIODO, STATUS_ASSINATURA } from "./enums";
 
 export interface AssinaturaAttributes {
   id: string;
@@ -8,9 +8,13 @@ export interface AssinaturaAttributes {
   valor: number;
   periodicidade: PERIODO;
   data_inicio: Date;
+  status: STATUS_ASSINATURA;
 }
 
-export interface AssinaturaCreationAttributes extends Optional<AssinaturaAttributes, "id"> {}
+export interface AssinaturaCreationAttributes extends Optional<
+  AssinaturaAttributes,
+  "id" | "status"
+> {}
 
 export class Assinatura
   extends Model<AssinaturaAttributes, AssinaturaCreationAttributes>
@@ -21,6 +25,7 @@ export class Assinatura
   public valor!: number;
   public periodicidade!: PERIODO;
   public data_inicio!: Date;
+  public status!: STATUS_ASSINATURA;
 }
 
 Assinatura.init(
@@ -45,6 +50,11 @@ Assinatura.init(
     data_inicio: {
       type: DataTypes.DATE,
       allowNull: false,
+    },
+    status: {
+      type: DataTypes.ENUM(...Object.values(STATUS_ASSINATURA)),
+      allowNull: false,
+      defaultValue: STATUS_ASSINATURA.ATIVA,
     },
   },
   {

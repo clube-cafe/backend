@@ -106,4 +106,17 @@ export class AssinaturaController {
       return res.status(400).json({ message: error.message });
     }
   }
+
+  async cancelarAssinatura(req: Request, res: Response) {
+    try {
+      const { assinatura_id } = req.params;
+      const { motivo } = req.body;
+      const resultado = await this.assinaturaService.cancelarAssinatura(assinatura_id, motivo);
+      return res.status(200).json(resultado);
+    } catch (error: any) {
+      console.error(error);
+      const statusCode = error.message.includes("não encontrada") ? 404 : 400;
+      return res.status(statusCode).json({ message: error.message });
+    }
+  }
 }
