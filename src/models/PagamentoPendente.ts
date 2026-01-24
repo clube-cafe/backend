@@ -5,6 +5,7 @@ import { STATUS } from "./enums";
 export interface PagamentoPendenteAttributes {
   id: string;
   user_id: string;
+  assinatura_id?: string;
   valor: number;
   data_vencimento: Date;
   descricao: string;
@@ -16,7 +17,7 @@ export interface PagamentoPendenteAttributes {
 
 export interface PagamentoPendenteCreationAttributes extends Optional<
   PagamentoPendenteAttributes,
-  "id" | "createdAt" | "updatedAt" | "deletedAt"
+  "id" | "assinatura_id" | "createdAt" | "updatedAt" | "deletedAt"
 > {}
 
 export class PagamentoPendente
@@ -25,6 +26,7 @@ export class PagamentoPendente
 {
   public id!: string;
   public user_id!: string;
+  public assinatura_id?: string;
   public valor!: number;
   public data_vencimento!: Date;
   public descricao!: string;
@@ -44,6 +46,10 @@ PagamentoPendente.init(
     user_id: {
       type: DataTypes.UUID,
       allowNull: false,
+    },
+    assinatura_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
     valor: {
       type: DataTypes.DOUBLE,
