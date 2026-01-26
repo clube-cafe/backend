@@ -6,6 +6,7 @@ export interface UserAttributes {
   id: string;
   nome: string;
   email: string;
+  password: string;
   tipo_user: TIPO_USER;
   createdAt?: Date;
   updatedAt?: Date;
@@ -21,6 +22,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public id!: string;
   public nome!: string;
   public email!: string;
+  public password!: string;
   public tipo_user!: TIPO_USER;
   public createdAt?: Date;
   public updatedAt?: Date;
@@ -42,6 +44,10 @@ User.init(
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
+    },
+    password: {
+      type: DataTypes.STRING,
+      allowNull: false,
     },
     tipo_user: {
       type: DataTypes.ENUM(...Object.values(TIPO_USER)),
