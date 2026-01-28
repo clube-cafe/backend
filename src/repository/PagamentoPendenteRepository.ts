@@ -9,7 +9,8 @@ export class PagamentoPendenteRepository {
     data_vencimento: Date,
     descricao: string,
     status: STATUS = STATUS.PENDENTE,
-    transaction?: Transaction
+    transaction?: Transaction,
+    assinatura_id?: string
   ) {
     const pagamentoPendente = await PagamentoPendente.create(
       {
@@ -18,6 +19,7 @@ export class PagamentoPendenteRepository {
         data_vencimento,
         descricao,
         status,
+        assinatura_id,
       },
       { transaction }
     );

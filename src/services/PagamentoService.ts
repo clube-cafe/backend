@@ -388,24 +388,64 @@ export class PagamentoService {
           const pendente =
             await this.pagamentoPendenteRepository.getPagamentoPendenteById(pagamento_pendente_id);
 
-          if (pendente) {
-            descricaoPendente = pendente.descricao;
-            await this.pagamentoPendenteRepository.updateStatusPagamentoPendente(
-              pagamento_pendente_id,
-              STATUS.CANCELADO,
-              transaction
+          if (!pendente) {
+            throw new ValidationError("Pagamento pendente não encontrado");
+          }
+
+          if (pendente.user_id !== user_id) {
+            throw new ValidationError("Pagamento pendente não pertence ao usuário informado");
+          }
+
+          if (pendente.status === STATUS.PAGO || pendente.status === STATUS.CANCELADO) {
+            throw new ValidationError(
+              `Pagamento pendente já está ${pendente.status === STATUS.PAGO ? "pago" : "cancelado"}`
             );
           }
+
+          if (pendente.valor !== valor) {
+            throw new ValidationError(
+              `Valor do pagamento (${valor}) não corresponde ao valor do pendente (${pendente.valor})`
+            );
+          }
+
+          descricaoPendente = pendente.descricao;
+          await this.pagamentoPendenteRepository.updateStatusPagamentoPendente(
+            pagamento_pendente_id,
+            STATUS.PAGO,
+            transaction
+          );
         } else {
           const pendentes =
             await this.pagamentoPendenteRepository.getPagamentosPendentesByUserId(user_id);
-          const pendente = pendentes.find((p) => p.valor === valor && p.status === STATUS.PENDENTE);
+          const pendentesPendentes = pendentes.filter(
+            (p) =>
+              p.valor === valor && (p.status === STATUS.PENDENTE || p.status === STATUS.ATRASADO)
+          );
 
+          if (pendentesPendentes.length === 0) {
+            Logger.warn("Nenhum pagamento pendente encontrado para associar ao pagamento", {
+              user_id,
+              valor,
+            });
+          } else if (pendentesPendentes.length > 1) {
+            pendentesPendentes.sort((a, b) => {
+              const dataA = new Date(a.data_vencimento).getTime();
+              const dataB = new Date(b.data_vencimento).getTime();
+              return dataA - dataB;
+            });
+            Logger.warn("Múltiplos pagamentos pendentes encontrados, usando o mais antigo", {
+              user_id,
+              valor,
+              total: pendentesPendentes.length,
+            });
+          }
+
+          const pendente = pendentesPendentes[0];
           if (pendente) {
             descricaoPendente = pendente.descricao;
             await this.pagamentoPendenteRepository.updateStatusPagamentoPendente(
               pendente.id,
-              STATUS.CANCELADO,
+              STATUS.PAGO,
               transaction
             );
           }

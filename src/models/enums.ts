@@ -13,6 +13,7 @@ export enum PERIODO {
 export enum STATUS {
   PENDENTE = "PENDENTE",
   ATRASADO = "ATRASADO",
+  PAGO = "PAGO",
   CANCELADO = "CANCELADO",
 }
 

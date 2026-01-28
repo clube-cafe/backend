@@ -301,14 +301,15 @@ export class AssinaturaService {
           // Define descrição baseada no período
           const descricao = this.gerarDescricaoPendencia(periodicidade, dataVencimento, i + 1);
 
-          // Cria pendência
+          // Cria pendência associada à assinatura
           await this.pagamentoPendenteRepository.createPagamentoPendente(
             user_id,
             valor,
             dataVencimento,
             descricao,
             STATUS.PENDENTE,
-            transaction
+            transaction,
+            assinatura.id
           );
 
           pendencias.push({
@@ -428,17 +429,14 @@ export class AssinaturaService {
         throw new Error("Assinatura já foi cancelada");
       }
 
-      // 2. Conta pendências que serão canceladas
-      const pendenciasPendentes = await PagamentoPendente.findAll({
+      // 2. Busca pendências que serão canceladas (apenas desta assinatura)
+      const pendenciasParaCancelar = await PagamentoPendente.findAll({
         where: {
+          assinatura_id: assinatura_id,
           status: [STATUS.PENDENTE, STATUS.ATRASADO],
         },
         transaction,
       });
-
-      const pendenciasParaCancelar = pendenciasPendentes.filter(
-        (p: any) => p.user_id === assinatura.user_id
-      );
 
       const valorCancelado = pendenciasParaCancelar.reduce(
         (sum: number, p: any) => sum + parseFloat(p.valor as any),
@@ -456,20 +454,6 @@ export class AssinaturaService {
       assinatura.status = STATUS_ASSINATURA.CANCELADA;
       await assinatura.save({ transaction });
 
-      // 5. Cria entry de histórico com a saída
-      const descricaoHistorico = motivo
-        ? `Cancelamento de assinatura - ${motivo}`
-        : "Cancelamento de assinatura";
-
-      await this.historicoRepository.createHistorico(
-        assinatura.user_id,
-        TIPO.SAIDA,
-        valorCancelado,
-        new Date(),
-        descricaoHistorico,
-        transaction
-      );
-
       return {
         message: "Assinatura cancelada com sucesso",
         resultado: {
@@ -477,7 +461,6 @@ export class AssinaturaService {
           status: STATUS_ASSINATURA.CANCELADA,
           pendencias_canceladas: pendenciasParaCancelar.length,
           valor_pendente_cancelado: valorCancelado,
-          historico_registrado: true,
         },
       };
     });
