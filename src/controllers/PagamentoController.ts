@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { PagamentoService } from "../services/PagamentoService";
 import { PAGAMENTO_ENUM } from "../models/enums";
+import { Logger } from "../utils/Logger";
 
 export class PagamentoController {
   private pagamentoService: PagamentoService;
@@ -21,7 +22,10 @@ export class PagamentoController {
       );
       return res.status(201).json(pagamento);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -31,7 +35,10 @@ export class PagamentoController {
       const pagamentos = await this.pagamentoService.getAllPagamentos();
       return res.json(pagamentos);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(500).json({ message: "Erro ao obter pagamentos", error: error.message });
     }
   }
@@ -42,7 +49,10 @@ export class PagamentoController {
       const pagamento = await this.pagamentoService.getPagamentoById(id);
       return res.json(pagamento);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrado") ? 404 : 400;
       return res.status(statusCode).json({ message: error.message });
     }
@@ -54,7 +64,10 @@ export class PagamentoController {
       const pagamentos = await this.pagamentoService.getPagamentosByUserId(user_id);
       return res.json(pagamentos);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -67,7 +80,10 @@ export class PagamentoController {
       );
       return res.json(pagamentos);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -81,7 +97,10 @@ export class PagamentoController {
       );
       return res.json(pagamentos);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -99,7 +118,10 @@ export class PagamentoController {
       );
       return res.json(pagamento);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrado") ? 404 : 400;
       return res.status(statusCode).json({ message: error.message });
     }
@@ -111,7 +133,10 @@ export class PagamentoController {
       await this.pagamentoService.deletePagamento(id);
       return res.status(204).send();
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrado") ? 404 : 400;
       return res.status(statusCode).json({ message: error.message });
     }
@@ -122,7 +147,10 @@ export class PagamentoController {
       const total = await this.pagamentoService.getTotalPagamentos();
       return res.json({ total });
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(500).json({ message: "Erro ao calcular total", error: error.message });
     }
   }
@@ -133,7 +161,10 @@ export class PagamentoController {
       const total = await this.pagamentoService.getTotalPagamentosByUser(user_id);
       return res.json({ total });
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -155,7 +186,10 @@ export class PagamentoController {
         resultado,
       });
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }

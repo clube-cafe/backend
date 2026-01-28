@@ -1,6 +1,7 @@
 import { PagamentoPendente } from "../models/PagamentoPendente";
 import { STATUS } from "../models/enums";
 import { Op, Transaction } from "sequelize";
+import { NotFoundError } from "../utils/Errors";
 
 export class PagamentoPendenteRepository {
   async createPagamentoPendente(
@@ -33,8 +34,8 @@ export class PagamentoPendenteRepository {
     });
   }
 
-  async getPagamentoPendenteById(id: string) {
-    return await PagamentoPendente.findByPk(id);
+  async getPagamentoPendenteById(id: string, transaction?: Transaction) {
+    return await PagamentoPendente.findByPk(id, { transaction });
   }
 
   async getPagamentosPendentesByUserId(user_id: string) {
@@ -88,7 +89,7 @@ export class PagamentoPendenteRepository {
   ) {
     const pagamentoPendente = await PagamentoPendente.findByPk(id, { transaction });
     if (!pagamentoPendente) {
-      throw new Error("Pagamento pendente não encontrado");
+      throw new NotFoundError("Pagamento pendente não encontrado");
     }
 
     if (valor !== undefined) pagamentoPendente.valor = valor;

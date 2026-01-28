@@ -36,11 +36,20 @@ export class PagamentoPendenteService {
     }
 
     if (!Validators.isValidMoney(valor)) {
-      throw new ValidationError("Valor deve ser um número positivo e finito");
+      throw new ValidationError(
+        "Valor deve ser um número positivo, finito e não superior a R$ 1.000.000"
+      );
     }
 
     if (!Validators.isValidDate(data_vencimento)) {
       throw new ValidationError("data_vencimento deve ser uma data válida");
+    }
+
+    if (!Validators.isDateInFuture(data_vencimento, true)) {
+      Logger.warn("Pagamento pendente criado com data de vencimento no passado", {
+        user_id,
+        data_vencimento,
+      });
     }
 
     if (!Validators.isValidString(descricao, 1, 255)) {
@@ -99,11 +108,20 @@ export class PagamentoPendenteService {
     }
 
     if (!Validators.isValidMoney(valor)) {
-      throw new ValidationError("Valor deve ser um número positivo e finito");
+      throw new ValidationError(
+        "Valor deve ser um número positivo, finito e não superior a R$ 1.000.000"
+      );
     }
 
     if (!Validators.isValidDate(data_vencimento)) {
       throw new ValidationError("data_vencimento deve ser uma data válida");
+    }
+
+    if (!Validators.isDateInFuture(data_vencimento, true)) {
+      Logger.warn("Pagamento pendente criado com data de vencimento no passado", {
+        user_id,
+        data_vencimento,
+      });
     }
 
     if (!Validators.isValidString(descricao, 1, 255)) {

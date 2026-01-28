@@ -3,6 +3,7 @@ import { PagamentoPendenteRepository } from "../repository/PagamentoPendenteRepo
 import { STATUS } from "../models/enums";
 import { PagamentoPendente } from "../models/PagamentoPendente";
 import { Logger } from "../utils/Logger";
+import { TransactionHelper } from "./TransactionHelper";
 
 const pagamentoPendenteRepository = new PagamentoPendenteRepository();
 
@@ -18,17 +19,21 @@ export class SchedulerJobs {
         Logger.info("[CRON] Executando: Marcar pagamentos atrasados");
 
         const vencidos = await pagamentoPendenteRepository.getPagamentosVencidos();
+        const pendentesParaAtualizar = vencidos.filter((p) => p.status === STATUS.PENDENTE);
 
-        if (vencidos && vencidos.length > 0) {
-          for (const pendente of vencidos) {
-            if (pendente.status === STATUS.PENDENTE) {
-              await pagamentoPendenteRepository.updateStatusPagamentoPendente(
-                pendente.id,
-                STATUS.ATRASADO
-              );
-            }
-          }
-          Logger.info(`[CRON] ${vencidos.length} pagamentos marcados como ATRASADO`);
+        if (pendentesParaAtualizar.length > 0) {
+          await TransactionHelper.executeTransaction(async (transaction) => {
+            await Promise.all(
+              pendentesParaAtualizar.map((pendente) =>
+                pagamentoPendenteRepository.updateStatusPagamentoPendente(
+                  pendente.id,
+                  STATUS.ATRASADO,
+                  transaction
+                )
+              )
+            );
+          });
+          Logger.info(`[CRON] ${pendentesParaAtualizar.length} pagamentos marcados como ATRASADO`);
         } else {
           Logger.info("[CRON] Nenhum pagamento atrasado encontrado");
         }
@@ -43,8 +48,10 @@ export class SchedulerJobs {
       try {
         Logger.info("[CRON] Executando: Lembretes de vencimento (3 dias)");
         const hoje = new Date();
+        hoje.setUTCHours(0, 0, 0, 0);
         const em3Dias = new Date();
-        em3Dias.setDate(em3Dias.getDate() + 3);
+        em3Dias.setUTCDate(em3Dias.getUTCDate() + 3);
+        em3Dias.setUTCHours(23, 59, 59, 999);
 
         const vencendo = await pagamentoPendenteRepository.getPagamentosVencendo(hoje, em3Dias);
 

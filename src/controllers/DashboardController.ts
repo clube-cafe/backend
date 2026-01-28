@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { DashboardService } from "../services/DashboardService";
+import { Logger } from "../utils/Logger";
 
 export class DashboardController {
   private dashboardService: DashboardService;
@@ -16,7 +17,10 @@ export class DashboardController {
         data: metricas,
       });
     } catch (error) {
-      console.error("Erro ao obter métricas:", error);
+      Logger.error("Erro ao obter métricas", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(500).json({ message: "Erro ao obter métricas" });
     }
   }
@@ -29,7 +33,10 @@ export class DashboardController {
         data: detalhes,
       });
     } catch (error) {
-      console.error("Erro ao obter detalhes:", error);
+      Logger.error("Erro ao obter detalhes", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(500).json({ message: "Erro ao obter detalhes das assinaturas" });
     }
   }
@@ -42,7 +49,10 @@ export class DashboardController {
         data: pagamentos,
       });
     } catch (error) {
-      console.error("Erro ao obter pagamentos pendentes:", error);
+      Logger.error("Erro ao obter pagamentos pendentes", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(500).json({ message: "Erro ao obter pagamentos pendentes" });
     }
   }

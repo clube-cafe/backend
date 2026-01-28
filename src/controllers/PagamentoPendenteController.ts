@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { PagamentoPendenteService } from "../services/PagamentoPendenteService";
 import { STATUS } from "../models/enums";
+import { Logger } from "../utils/Logger";
 
 export class PagamentoPendenteController {
   private pagamentoPendenteService: PagamentoPendenteService;
@@ -21,7 +22,10 @@ export class PagamentoPendenteController {
       );
       return res.status(201).json(pagamentoPendente);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -31,7 +35,10 @@ export class PagamentoPendenteController {
       const pagamentosPendentes = await this.pagamentoPendenteService.getAllPagamentosPendentes();
       return res.json(pagamentosPendentes);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res
         .status(500)
         .json({ message: "Erro ao obter pagamentos pendentes", error: error.message });
@@ -44,7 +51,10 @@ export class PagamentoPendenteController {
       const pagamentoPendente = await this.pagamentoPendenteService.getPagamentoPendenteById(id);
       return res.json(pagamentoPendente);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrado") ? 404 : 400;
       return res.status(statusCode).json({ message: error.message });
     }
@@ -57,7 +67,10 @@ export class PagamentoPendenteController {
         await this.pagamentoPendenteService.getPagamentosPendentesByUserId(user_id);
       return res.json(pagamentosPendentes);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -69,7 +82,10 @@ export class PagamentoPendenteController {
         await this.pagamentoPendenteService.getPagamentosPendentesByStatus(status as STATUS);
       return res.json(pagamentosPendentes);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -80,7 +96,10 @@ export class PagamentoPendenteController {
         await this.pagamentoPendenteService.getPagamentosPendentesVencidos();
       return res.json(pagamentosPendentes);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res
         .status(500)
         .json({ message: "Erro ao obter pagamentos vencidos", error: error.message });
@@ -97,7 +116,10 @@ export class PagamentoPendenteController {
         );
       return res.json(pagamentosPendentes);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -115,7 +137,10 @@ export class PagamentoPendenteController {
       );
       return res.json(pagamentoPendente);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrado") ? 404 : 400;
       return res.status(statusCode).json({ message: error.message });
     }
@@ -131,7 +156,10 @@ export class PagamentoPendenteController {
       );
       return res.json(pagamentoPendente);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrado") ? 404 : 400;
       return res.status(statusCode).json({ message: error.message });
     }
@@ -143,7 +171,10 @@ export class PagamentoPendenteController {
       await this.pagamentoPendenteService.deletePagamentoPendente(id);
       return res.status(204).send();
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrado") ? 404 : 400;
       return res.status(statusCode).json({ message: error.message });
     }
@@ -154,7 +185,10 @@ export class PagamentoPendenteController {
       const total = await this.pagamentoPendenteService.getTotalPagamentosPendentes();
       return res.json({ total });
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(500).json({ message: "Erro ao calcular total", error: error.message });
     }
   }
@@ -165,7 +199,10 @@ export class PagamentoPendenteController {
       const total = await this.pagamentoPendenteService.getTotalPagamentosPendentesByUser(user_id);
       return res.json({ total });
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }

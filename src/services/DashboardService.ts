@@ -29,10 +29,11 @@ export class DashboardService {
     }
 
     const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
+    hoje.setUTCHours(0, 0, 0, 0);
 
-    const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    const ultimoDiaMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+    const primeiroDiaMes = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 1));
+    const ultimoDiaMes = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 1, 0));
+    ultimoDiaMes.setUTCHours(23, 59, 59, 999);
 
     const [
       totalAssinaturas,

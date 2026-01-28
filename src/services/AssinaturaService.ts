@@ -59,7 +59,9 @@ export class AssinaturaService {
     }
 
     if (!Validators.isValidMoney(valor)) {
-      throw new ValidationError("Valor deve ser um número positivo");
+      throw new ValidationError(
+        "Valor deve ser um número positivo, finito e não superior a R$ 1.000.000"
+      );
     }
 
     if (!Object.values(PERIODO).includes(periodicidade)) {
@@ -358,7 +360,10 @@ export class AssinaturaService {
           const diaAjustado = Math.min(diaVencimento, ultimoDiaDoMes);
           dataVencimento.setDate(diaAjustado);
 
-          if (i === 0 && dataVencimento < data_inicio) {
+          const dataInicioNormalizada = Validators.normalizeDate(data_inicio);
+          const dataVencimentoNormalizada = Validators.normalizeDate(dataVencimento);
+
+          if (i === 0 && dataVencimentoNormalizada < dataInicioNormalizada) {
             dataVencimento.setMonth(dataVencimento.getMonth() + mesesEntrePagamentos);
             const ultimoDiaProximoMes = new Date(
               dataVencimento.getFullYear(),

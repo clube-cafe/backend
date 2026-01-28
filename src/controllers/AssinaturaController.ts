@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { AssinaturaService } from "../services/AssinaturaService";
+import { Logger } from "../utils/Logger";
 
 export class AssinaturaController {
   private assinaturaService: AssinaturaService;
@@ -19,7 +20,10 @@ export class AssinaturaController {
       );
       return res.status(201).json(assinatura);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -29,7 +33,10 @@ export class AssinaturaController {
       const assinaturas = await this.assinaturaService.getAllAssinaturas();
       return res.json(assinaturas);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(500).json({ message: "Erro ao obter assinaturas", error: error.message });
     }
   }
@@ -40,7 +47,10 @@ export class AssinaturaController {
       const assinatura = await this.assinaturaService.getAssinaturaById(id);
       return res.json(assinatura);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrada") ? 404 : 400;
       return res.status(statusCode).json({ message: error.message });
     }
@@ -52,7 +62,10 @@ export class AssinaturaController {
       const assinaturas = await this.assinaturaService.getAssinaturasByUserId(user_id);
       return res.json(assinaturas);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -69,7 +82,10 @@ export class AssinaturaController {
       );
       return res.json(assinatura);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrada") ? 404 : 400;
       return res.status(statusCode).json({ message: error.message });
     }
@@ -81,7 +97,10 @@ export class AssinaturaController {
       await this.assinaturaService.deleteAssinatura(id);
       return res.status(204).send();
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrada") ? 404 : 400;
       return res.status(statusCode).json({ message: error.message });
     }
@@ -102,7 +121,10 @@ export class AssinaturaController {
         ...resultado,
       });
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -114,7 +136,10 @@ export class AssinaturaController {
       const resultado = await this.assinaturaService.cancelarAssinatura(assinatura_id, motivo);
       return res.status(200).json(resultado);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrada") ? 404 : 400;
       return res.status(statusCode).json({ message: error.message });
     }

@@ -42,11 +42,17 @@ export class PagamentoService {
     }
 
     if (!Validators.isValidMoney(valor)) {
-      throw new ValidationError("Valor deve ser um número positivo e finito");
+      throw new ValidationError(
+        "Valor deve ser um número positivo, finito e não superior a R$ 1.000.000"
+      );
     }
 
     if (!Validators.isValidDate(data_pagamento)) {
       throw new ValidationError("data_pagamento deve ser uma data válida");
+    }
+
+    if (!Validators.isDateWithinReasonableRange(data_pagamento)) {
+      throw new ValidationError("data_pagamento não pode estar mais de 10 anos no futuro");
     }
 
     if (!Object.values(PAGAMENTO_ENUM).includes(forma_pagamento)) {
@@ -106,11 +112,17 @@ export class PagamentoService {
     }
 
     if (!Validators.isValidMoney(valor)) {
-      throw new ValidationError("Valor deve ser um número positivo e finito");
+      throw new ValidationError(
+        "Valor deve ser um número positivo, finito e não superior a R$ 1.000.000"
+      );
     }
 
     if (!Validators.isValidDate(data_pagamento)) {
       throw new ValidationError("data_pagamento deve ser uma data válida");
+    }
+
+    if (!Validators.isDateWithinReasonableRange(data_pagamento)) {
+      throw new ValidationError("data_pagamento não pode estar mais de 10 anos no futuro");
     }
 
     if (!Object.values(PAGAMENTO_ENUM).includes(forma_pagamento)) {
@@ -379,11 +391,17 @@ export class PagamentoService {
     }
 
     if (!Validators.isValidMoney(valor)) {
-      throw new ValidationError("Valor deve ser um número positivo e finito");
+      throw new ValidationError(
+        "Valor deve ser um número positivo, finito e não superior a R$ 1.000.000"
+      );
     }
 
     if (!Validators.isValidDate(data_pagamento)) {
       throw new ValidationError("data_pagamento deve ser uma data válida");
+    }
+
+    if (!Validators.isDateWithinReasonableRange(data_pagamento)) {
+      throw new ValidationError("data_pagamento não pode estar mais de 10 anos no futuro");
     }
 
     if (!Object.values(PAGAMENTO_ENUM).includes(forma_pagamento)) {
@@ -471,7 +489,32 @@ export class PagamentoService {
 
           const pendente = pendentesPendentes[0];
           if (pendente) {
-            descricaoPendente = pendente.descricao;
+            const pendenteAtualizado =
+              await this.pagamentoPendenteRepository.getPagamentoPendenteById(
+                pendente.id,
+                transaction
+              );
+
+            if (!pendenteAtualizado) {
+              throw new ValidationError("Pagamento pendente não encontrado");
+            }
+
+            if (
+              pendenteAtualizado.status === STATUS.PAGO ||
+              pendenteAtualizado.status === STATUS.CANCELADO
+            ) {
+              throw new ValidationError(
+                `Pagamento pendente já está ${pendenteAtualizado.status === STATUS.PAGO ? "pago" : "cancelado"}`
+              );
+            }
+
+            if (pendenteAtualizado.valor !== valor) {
+              throw new ValidationError(
+                `Valor do pagamento (${valor}) não corresponde ao valor do pendente (${pendenteAtualizado.valor})`
+              );
+            }
+
+            descricaoPendente = pendenteAtualizado.descricao;
             await this.pagamentoPendenteRepository.updateStatusPagamentoPendente(
               pendente.id,
               STATUS.PAGO,

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { DelinquenciaService } from "../services/DelinquenciaService";
+import { Logger } from "../utils/Logger";
 
 export class DelinquenciaController {
   private delinquenciaService: DelinquenciaService;
@@ -16,7 +17,10 @@ export class DelinquenciaController {
         data: atrasos,
       });
     } catch (error: any) {
-      console.error("Erro ao obter atrasos:", error);
+      Logger.error("Erro ao obter atrasos", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(500).json({ message: "Erro ao obter relatório de inadimplência" });
     }
   }
@@ -30,7 +34,10 @@ export class DelinquenciaController {
         data: relatorio,
       });
     } catch (error: any) {
-      console.error("Erro ao obter relatório:", error);
+      Logger.error("Erro ao obter relatório", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrado") ? 404 : 500;
       return res.status(statusCode).json({ message: error.message });
     }

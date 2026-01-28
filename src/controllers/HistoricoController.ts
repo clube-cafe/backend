@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { HistoricoService } from "../services/HistoricoService";
 import { TIPO } from "../models/enums";
+import { Logger } from "../utils/Logger";
 
 export class HistoricoController {
   private historicoService: HistoricoService;
@@ -21,7 +22,10 @@ export class HistoricoController {
       );
       return res.status(201).json(historico);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -31,7 +35,10 @@ export class HistoricoController {
       const historicos = await this.historicoService.getAllHistoricos();
       return res.json(historicos);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(500).json({ message: "Erro ao obter históricos", error: error.message });
     }
   }
@@ -42,7 +49,10 @@ export class HistoricoController {
       const historico = await this.historicoService.getHistoricoById(id);
       return res.json(historico);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrado") ? 404 : 400;
       return res.status(statusCode).json({ message: error.message });
     }
@@ -54,7 +64,10 @@ export class HistoricoController {
       const historicos = await this.historicoService.getHistoricosByUserId(user_id);
       return res.json(historicos);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -65,7 +78,10 @@ export class HistoricoController {
       const historicos = await this.historicoService.getHistoricosByTipo(tipo as TIPO);
       return res.json(historicos);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -79,7 +95,10 @@ export class HistoricoController {
       );
       return res.json(historicos);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -95,7 +114,10 @@ export class HistoricoController {
       );
       return res.json(historicos);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -113,7 +135,10 @@ export class HistoricoController {
       );
       return res.json(historico);
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrado") ? 404 : 400;
       return res.status(statusCode).json({ message: error.message });
     }
@@ -125,7 +150,10 @@ export class HistoricoController {
       await this.historicoService.deleteHistorico(id);
       return res.status(204).send();
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       const statusCode = error.message.includes("não encontrado") ? 404 : 400;
       return res.status(statusCode).json({ message: error.message });
     }
@@ -136,7 +164,10 @@ export class HistoricoController {
       const total = await this.historicoService.getTotalEntradas();
       return res.json({ total });
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(500).json({ message: "Erro ao calcular total", error: error.message });
     }
   }
@@ -146,7 +177,10 @@ export class HistoricoController {
       const total = await this.historicoService.getTotalSaidas();
       return res.json({ total });
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(500).json({ message: "Erro ao calcular total", error: error.message });
     }
   }
@@ -156,7 +190,10 @@ export class HistoricoController {
       const saldo = await this.historicoService.getSaldoAtual();
       return res.json({ saldo });
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(500).json({ message: "Erro ao calcular saldo", error: error.message });
     }
   }
@@ -167,7 +204,10 @@ export class HistoricoController {
       const total = await this.historicoService.getTotalEntradasByUser(user_id);
       return res.json({ total });
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -178,7 +218,10 @@ export class HistoricoController {
       const total = await this.historicoService.getTotalSaidasByUser(user_id);
       return res.json({ total });
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }
@@ -189,7 +232,10 @@ export class HistoricoController {
       const saldo = await this.historicoService.getSaldoAtualByUser(user_id);
       return res.json({ saldo });
     } catch (error: any) {
-      console.error(error);
+      Logger.error("Erro ao processar requisição", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return res.status(400).json({ message: error.message });
     }
   }

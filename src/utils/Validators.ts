@@ -30,8 +30,40 @@ export class Validators {
   /**
    * Valida se é um valor monetário válido
    */
-  static isValidMoney(value: number): boolean {
-    return typeof value === "number" && value > 0 && Number.isFinite(value);
+  static isValidMoney(value: number, maxValue: number = 1000000): boolean {
+    return typeof value === "number" && value > 0 && value <= maxValue && Number.isFinite(value);
+  }
+
+  /**
+   * Normaliza data para meia-noite UTC para comparações
+   */
+  static normalizeDate(date: Date | string): Date {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+    const normalized = new Date(dateObj);
+    normalized.setUTCHours(0, 0, 0, 0);
+    return normalized;
+  }
+
+  /**
+   * Valida se data está no futuro (ou no passado permitido)
+   */
+  static isDateInFuture(date: Date | string, allowPast: boolean = false): boolean {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+    const hoje = new Date();
+    hoje.setUTCHours(0, 0, 0, 0);
+    const dataNormalizada = this.normalizeDate(dateObj);
+    return allowPast || dataNormalizada >= hoje;
+  }
+
+  /**
+   * Valida se data está dentro de um período razoável (não muito no futuro)
+   */
+  static isDateWithinReasonableRange(date: Date | string, maxYearsFuture: number = 10): boolean {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+    const hoje = new Date();
+    const maxDate = new Date();
+    maxDate.setFullYear(hoje.getFullYear() + maxYearsFuture);
+    return dateObj <= maxDate;
   }
 
   /**

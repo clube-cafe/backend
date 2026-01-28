@@ -7,7 +7,7 @@ import { Op } from "sequelize";
 export class DelinquenciaService {
   async obterAssinaturasEmAtraso() {
     const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
+    hoje.setUTCHours(0, 0, 0, 0);
 
     // Busca todas as pendências atrasadas
     const pagamentosAtrasados = await PagamentoPendente.findAll({
@@ -93,7 +93,7 @@ export class DelinquenciaService {
 
   async obterRelatorioPorUser(user_id: string) {
     const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
+    hoje.setUTCHours(0, 0, 0, 0);
 
     const user = await User.findByPk(user_id, {
       attributes: ["id", "nome", "email"],
