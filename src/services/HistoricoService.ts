@@ -1,4 +1,5 @@
 import { HistoricoRepository } from "../repository/HistoricoRepository";
+import { UserRepository } from "../repository/UserRepository";
 import { TIPO } from "../models/enums";
 import { TransactionHelper } from "../config/TransactionHelper";
 import { Validators } from "../utils/Validators";
@@ -7,14 +8,25 @@ import { ValidationError, NotFoundError, InternalServerError } from "../utils/Er
 
 export class HistoricoService {
   private historicoRepository: HistoricoRepository;
+  private userRepository: UserRepository;
 
   constructor() {
     this.historicoRepository = new HistoricoRepository();
+    this.userRepository = new UserRepository();
   }
 
   async createHistorico(user_id: string, tipo: TIPO, valor: number, data: Date, descricao: string) {
     if (!Validators.isValidUUID(user_id)) {
       throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
+    }
+
+    try {
+      await this.userRepository.getUserById(user_id);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new ValidationError("Usuário não encontrado");
+      }
+      throw error;
     }
 
     if (!Object.values(TIPO).includes(tipo)) {
@@ -69,6 +81,15 @@ export class HistoricoService {
   ) {
     if (!Validators.isValidUUID(user_id)) {
       throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
+    }
+
+    try {
+      await this.userRepository.getUserById(user_id);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new ValidationError("Usuário não encontrado");
+      }
+      throw error;
     }
 
     if (!Object.values(TIPO).includes(tipo)) {

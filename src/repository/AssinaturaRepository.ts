@@ -1,5 +1,5 @@
 import { Assinatura } from "../models/Assinatura";
-import { PERIODO } from "../models/enums";
+import { PERIODO, STATUS_ASSINATURA } from "../models/enums";
 import { Transaction } from "sequelize";
 import { Logger } from "../utils/Logger";
 import { NotFoundError } from "../utils/Errors";
@@ -41,6 +41,15 @@ export class AssinaturaRepository {
   async getAssinaturasByUserId(user_id: string) {
     return await Assinatura.findAll({
       where: { user_id },
+    });
+  }
+
+  async getAssinaturasAtivasByUserId(user_id: string) {
+    return await Assinatura.findAll({
+      where: {
+        user_id,
+        status: STATUS_ASSINATURA.ATIVA,
+      },
     });
   }
 

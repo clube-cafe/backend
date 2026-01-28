@@ -1,4 +1,5 @@
 import { PagamentoPendenteRepository } from "../repository/PagamentoPendenteRepository";
+import { UserRepository } from "../repository/UserRepository";
 import { STATUS } from "../models/enums";
 import { TransactionHelper } from "../config/TransactionHelper";
 import { Validators } from "../utils/Validators";
@@ -7,9 +8,11 @@ import { ValidationError, NotFoundError, InternalServerError } from "../utils/Er
 
 export class PagamentoPendenteService {
   private pagamentoPendenteRepository: PagamentoPendenteRepository;
+  private userRepository: UserRepository;
 
   constructor() {
     this.pagamentoPendenteRepository = new PagamentoPendenteRepository();
+    this.userRepository = new UserRepository();
   }
 
   async createPagamentoPendente(
@@ -21,6 +24,15 @@ export class PagamentoPendenteService {
   ) {
     if (!Validators.isValidUUID(user_id)) {
       throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
+    }
+
+    try {
+      await this.userRepository.getUserById(user_id);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new ValidationError("Usuário não encontrado");
+      }
+      throw error;
     }
 
     if (!Validators.isValidMoney(valor)) {
@@ -75,6 +87,15 @@ export class PagamentoPendenteService {
   ) {
     if (!Validators.isValidUUID(user_id)) {
       throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
+    }
+
+    try {
+      await this.userRepository.getUserById(user_id);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new ValidationError("Usuário não encontrado");
+      }
+      throw error;
     }
 
     if (!Validators.isValidMoney(valor)) {
@@ -258,6 +279,23 @@ export class PagamentoPendenteService {
     }
   }
 
+  private validarTransicaoStatus(statusAtual: STATUS, novoStatus: STATUS): void {
+    const transicoesValidas: Record<STATUS, STATUS[]> = {
+      [STATUS.PENDENTE]: [STATUS.ATRASADO, STATUS.PAGO, STATUS.CANCELADO],
+      [STATUS.ATRASADO]: [STATUS.PAGO, STATUS.CANCELADO],
+      [STATUS.PAGO]: [],
+      [STATUS.CANCELADO]: [],
+    };
+
+    const transicoesPermitidas = transicoesValidas[statusAtual] || [];
+    if (!transicoesPermitidas.includes(novoStatus)) {
+      throw new ValidationError(
+        `Não é possível alterar status de ${statusAtual} para ${novoStatus}. ` +
+          `Transições permitidas: ${transicoesPermitidas.join(", ") || "nenhuma"}`
+      );
+    }
+  }
+
   async updateStatusPagamentoPendente(id: string, status: STATUS) {
     if (!Validators.isValidUUID(id)) {
       throw new ValidationError("ID é obrigatório e deve ser um UUID válido");
@@ -268,8 +306,18 @@ export class PagamentoPendenteService {
     }
 
     try {
+      const pendente = await this.pagamentoPendenteRepository.getPagamentoPendenteById(id);
+      if (!pendente) {
+        throw new NotFoundError("Pagamento pendente não encontrado");
+      }
+
+      this.validarTransicaoStatus(pendente.status, status);
+
       return await this.pagamentoPendenteRepository.updateStatusPagamentoPendente(id, status);
     } catch (error) {
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error;
+      }
       Logger.error("Erro ao atualizar status do pagamento pendente", {
         id,
         status,
@@ -289,6 +337,13 @@ export class PagamentoPendenteService {
     }
 
     try {
+      const pendente = await this.pagamentoPendenteRepository.getPagamentoPendenteById(id);
+      if (!pendente) {
+        throw new NotFoundError("Pagamento pendente não encontrado");
+      }
+
+      this.validarTransicaoStatus(pendente.status, status);
+
       return await TransactionHelper.executeTransaction(async (transaction) => {
         return await this.pagamentoPendenteRepository.updateStatusPagamentoPendente(
           id,
@@ -297,7 +352,9 @@ export class PagamentoPendenteService {
         );
       });
     } catch (error) {
-      if (error instanceof ValidationError) throw error;
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error;
+      }
       Logger.error("Erro ao atualizar status do pagamento pendente com transação", {
         id,
         status,

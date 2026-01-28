@@ -1,23 +1,31 @@
 import { AssinaturaRepository } from "../repository/AssinaturaRepository";
 import { PagamentoPendenteRepository } from "../repository/PagamentoPendenteRepository";
 import { HistoricoRepository } from "../repository/HistoricoRepository";
-import { PERIODO, STATUS, STATUS_ASSINATURA, TIPO } from "../models/enums";
+import { UserRepository } from "../repository/UserRepository";
+import { PERIODO, STATUS, STATUS_ASSINATURA } from "../models/enums";
 import { TransactionHelper } from "../config/TransactionHelper";
 import { Assinatura } from "../models/Assinatura";
 import { PagamentoPendente } from "../models/PagamentoPendente";
 import { Validators } from "../utils/Validators";
-import { ValidationError, NotFoundError, InternalServerError } from "../utils/Errors";
+import {
+  ValidationError,
+  NotFoundError,
+  InternalServerError,
+  ConflictError,
+} from "../utils/Errors";
 import { Logger } from "../utils/Logger";
 
 export class AssinaturaService {
   private assinaturaRepository: AssinaturaRepository;
   private pagamentoPendenteRepository: PagamentoPendenteRepository;
   private historicoRepository: HistoricoRepository;
+  private userRepository: UserRepository;
 
   constructor() {
     this.assinaturaRepository = new AssinaturaRepository();
     this.pagamentoPendenteRepository = new PagamentoPendenteRepository();
     this.historicoRepository = new HistoricoRepository();
+    this.userRepository = new UserRepository();
   }
 
   async createAssinatura(
@@ -26,13 +34,28 @@ export class AssinaturaService {
     periodicidade: PERIODO,
     data_inicio: Date
   ) {
-    // Validações centralizadas
     if (!user_id || !valor || !periodicidade || !data_inicio) {
       throw new ValidationError("Campos obrigatórios: user_id, valor, periodicidade, data_inicio");
     }
 
     if (!Validators.isValidUUID(user_id)) {
       throw new ValidationError("user_id inválido");
+    }
+
+    try {
+      await this.userRepository.getUserById(user_id);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new ValidationError("Usuário não encontrado");
+      }
+      throw error;
+    }
+
+    const assinaturasAtivas = await this.assinaturaRepository.getAssinaturasAtivasByUserId(user_id);
+    if (assinaturasAtivas.length > 0) {
+      throw new ConflictError(
+        "Usuário já possui uma assinatura ativa. Cancele a assinatura atual antes de criar uma nova."
+      );
     }
 
     if (!Validators.isValidMoney(valor)) {
@@ -63,6 +86,22 @@ export class AssinaturaService {
   ) {
     if (!Validators.isValidUUID(user_id)) {
       throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
+    }
+
+    try {
+      await this.userRepository.getUserById(user_id);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new ValidationError("Usuário não encontrado");
+      }
+      throw error;
+    }
+
+    const assinaturasAtivas = await this.assinaturaRepository.getAssinaturasAtivasByUserId(user_id);
+    if (assinaturasAtivas.length > 0) {
+      throw new ConflictError(
+        "Usuário já possui uma assinatura ativa. Cancele a assinatura atual antes de criar uma nova."
+      );
     }
 
     if (!Validators.isValidMoney(valor)) {
@@ -247,9 +286,24 @@ export class AssinaturaService {
     data_inicio: Date,
     dia_vencimento?: number
   ) {
-    // Validações
     if (!Validators.isValidUUID(user_id)) {
       throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
+    }
+
+    try {
+      await this.userRepository.getUserById(user_id);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new ValidationError("Usuário não encontrado");
+      }
+      throw error;
+    }
+
+    const assinaturasAtivas = await this.assinaturaRepository.getAssinaturasAtivasByUserId(user_id);
+    if (assinaturasAtivas.length > 0) {
+      throw new ConflictError(
+        "Usuário já possui uma assinatura ativa. Cancele a assinatura atual antes de criar uma nova."
+      );
     }
 
     if (!Validators.isValidMoney(valor)) {
@@ -266,11 +320,10 @@ export class AssinaturaService {
       throw new ValidationError("data_inicio deve ser uma data válida");
     }
 
-    // Define dia de vencimento (padrão: 10)
     const diaVencimento = dia_vencimento || 10;
 
-    if (!Validators.isValidDay(diaVencimento) || diaVencimento > 28) {
-      throw new ValidationError("Dia de vencimento deve estar entre 1 e 28");
+    if (!Validators.isValidDay(diaVencimento) || diaVencimento > 31) {
+      throw new ValidationError("Dia de vencimento deve estar entre 1 e 31");
     }
 
     try {
@@ -293,10 +346,27 @@ export class AssinaturaService {
         const dataBase = new Date(data_inicio);
 
         for (let i = 0; i < numeroPendencias; i++) {
-          // Calcula data de vencimento
           const dataVencimento = new Date(dataBase);
           dataVencimento.setMonth(dataBase.getMonth() + i * mesesEntrePagamentos);
-          dataVencimento.setDate(diaVencimento);
+
+          const ultimoDiaDoMes = new Date(
+            dataVencimento.getFullYear(),
+            dataVencimento.getMonth() + 1,
+            0
+          ).getDate();
+
+          const diaAjustado = Math.min(diaVencimento, ultimoDiaDoMes);
+          dataVencimento.setDate(diaAjustado);
+
+          if (i === 0 && dataVencimento < data_inicio) {
+            dataVencimento.setMonth(dataVencimento.getMonth() + mesesEntrePagamentos);
+            const ultimoDiaProximoMes = new Date(
+              dataVencimento.getFullYear(),
+              dataVencimento.getMonth() + 1,
+              0
+            ).getDate();
+            dataVencimento.setDate(Math.min(diaVencimento, ultimoDiaProximoMes));
+          }
 
           // Define descrição baseada no período
           const descricao = this.gerarDescricaoPendencia(periodicidade, dataVencimento, i + 1);

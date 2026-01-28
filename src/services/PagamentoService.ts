@@ -1,6 +1,7 @@
 import { PagamentoRepository } from "../repository/PagamentoRepository";
 import { PagamentoPendenteRepository } from "../repository/PagamentoPendenteRepository";
 import { HistoricoRepository } from "../repository/HistoricoRepository";
+import { UserRepository } from "../repository/UserRepository";
 import { PAGAMENTO_ENUM, STATUS, TIPO } from "../models/enums";
 import { TransactionHelper } from "../config/TransactionHelper";
 import { Validators } from "../utils/Validators";
@@ -11,11 +12,13 @@ export class PagamentoService {
   private pagamentoRepository: PagamentoRepository;
   private pagamentoPendenteRepository: PagamentoPendenteRepository;
   private historicoRepository: HistoricoRepository;
+  private userRepository: UserRepository;
 
   constructor() {
     this.pagamentoRepository = new PagamentoRepository();
     this.pagamentoPendenteRepository = new PagamentoPendenteRepository();
     this.historicoRepository = new HistoricoRepository();
+    this.userRepository = new UserRepository();
   }
 
   async createPagamento(
@@ -27,6 +30,15 @@ export class PagamentoService {
   ) {
     if (!Validators.isValidUUID(user_id)) {
       throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
+    }
+
+    try {
+      await this.userRepository.getUserById(user_id);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new ValidationError("Usuário não encontrado");
+      }
+      throw error;
     }
 
     if (!Validators.isValidMoney(valor)) {
@@ -82,6 +94,15 @@ export class PagamentoService {
   ) {
     if (!Validators.isValidUUID(user_id)) {
       throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
+    }
+
+    try {
+      await this.userRepository.getUserById(user_id);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new ValidationError("Usuário não encontrado");
+      }
+      throw error;
     }
 
     if (!Validators.isValidMoney(valor)) {
@@ -344,9 +365,17 @@ export class PagamentoService {
     observacao?: string,
     pagamento_pendente_id?: string
   ) {
-    // Validações
     if (!Validators.isValidUUID(user_id)) {
       throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
+    }
+
+    try {
+      await this.userRepository.getUserById(user_id);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new ValidationError("Usuário não encontrado");
+      }
+      throw error;
     }
 
     if (!Validators.isValidMoney(valor)) {
