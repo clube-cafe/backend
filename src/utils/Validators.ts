@@ -69,9 +69,17 @@ export class Validators {
   }
 
   /**
-   * Sanitiza string removendo caracteres especiais perigosos
+   * Sanitiza string removendo caracteres especiais perigosos (XSS prevention)
+   * Remove tags HTML e caracteres potencialmente perigosos
    */
   static sanitizeString(value: string): string {
-    return value.trim().replace(/[<>]/g, "");
+    if (typeof value !== "string") {
+      return "";
+    }
+    return value
+      .trim()
+      .replace(/[<>]/g, "")
+      .replace(/javascript:/gi, "")
+      .replace(/on\w+=/gi, "");
   }
 }

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { UserRepository } from "../repository/UserRepository";
 import { TIPO_USER } from "../models/enums";
+import { Logger } from "../utils/Logger";
 
 const userRepo = new UserRepository();
 
@@ -34,7 +35,7 @@ export const isAdmin = async (req: Request, res: Response, next: NextFunction) =
 
     next();
   } catch (error) {
-    console.error("Erro ao verificar permissões:", error);
+    Logger.error("Erro ao verificar permissões", error);
     return res.status(500).json({
       message: "Erro ao verificar permissões",
     });

@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { PagamentoPendenteRepository } from "../repository/PagamentoPendenteRepository";
 import { STATUS } from "../models/enums";
 import { PagamentoPendente } from "../models/PagamentoPendente";
+import { Logger } from "../utils/Logger";
 
 const pagamentoPendenteRepository = new PagamentoPendenteRepository();
 
@@ -14,7 +15,7 @@ export class SchedulerJobs {
   private static jobMarcarAtrasados() {
     cron.schedule("0 0 * * *", async () => {
       try {
-        console.log("[CRON] Executando: Marcar pagamentos atrasados");
+        Logger.info("[CRON] Executando: Marcar pagamentos atrasados");
 
         const vencidos = await pagamentoPendenteRepository.getPagamentosVencidos();
 
@@ -27,12 +28,12 @@ export class SchedulerJobs {
               );
             }
           }
-          console.log(`[CRON] ${vencidos.length} pagamentos marcados como ATRASADO`);
+          Logger.info(`[CRON] ${vencidos.length} pagamentos marcados como ATRASADO`);
         } else {
-          console.log("[CRON] Nenhum pagamento atrasado encontrado");
+          Logger.info("[CRON] Nenhum pagamento atrasado encontrado");
         }
       } catch (error) {
-        console.error("[CRON] Erro ao marcar atrasados:", error);
+        Logger.error("[CRON] Erro ao marcar atrasados", error);
       }
     });
   }
@@ -40,7 +41,7 @@ export class SchedulerJobs {
   private static jobLembreteVencimento() {
     cron.schedule("0 8 * * *", async () => {
       try {
-        console.log("[CRON] Executando: Lembretes de vencimento (3 dias)");
+        Logger.info("[CRON] Executando: Lembretes de vencimento (3 dias)");
         const hoje = new Date();
         const em3Dias = new Date();
         em3Dias.setDate(em3Dias.getDate() + 3);
@@ -48,15 +49,15 @@ export class SchedulerJobs {
         const vencendo = await pagamentoPendenteRepository.getPagamentosVencendo(hoje, em3Dias);
 
         if (vencendo && vencendo.length > 0) {
-          console.log(`[CRON] ${vencendo.length} pagamentos vencendo em 3 dias:`);
+          Logger.info(`[CRON] ${vencendo.length} pagamentos vencendo em 3 dias:`);
           vencendo.forEach((p: PagamentoPendente) => {
-            console.log(`  - ${p.descricao} | R$ ${p.valor} | ${p.data_vencimento}`);
+            Logger.info(`  - ${p.descricao} | R$ ${p.valor} | ${p.data_vencimento}`);
           });
         } else {
-          console.log("[CRON] Nenhum pagamento vencendo em 3 dias");
+          Logger.info("[CRON] Nenhum pagamento vencendo em 3 dias");
         }
       } catch (error) {
-        console.error("[CRON] Erro ao buscar lembretes:", error);
+        Logger.error("[CRON] Erro ao buscar lembretes", error);
       }
     });
   }

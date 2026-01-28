@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { authService } from "../services/AuthService";
 import { TIPO_USER } from "../models/enums";
+import { Logger } from "../utils/Logger";
+import { env } from "../config/env";
 
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
@@ -26,7 +28,7 @@ export const login = async (req: Request, res: Response) => {
         message: "Este usuário foi criado sem senha. Por favor, registre-se novamente.",
       });
     }
-    console.error("Erro no login:", error);
+    Logger.error("Erro no login", error);
     return res.status(500).json({ message: "Error logging in" });
   }
 };
@@ -41,7 +43,7 @@ export const logout = async (req: Request, res: Response) => {
 
     return res.status(200).json({ message: "Logout successful" });
   } catch (error) {
-    console.error("Erro no logout:", error);
+    Logger.error("Erro no logout", error);
     return res.status(500).json({ message: "Error logging out" });
   }
 };
@@ -76,10 +78,10 @@ export const register = async (req: Request, res: Response) => {
     if (error.message === "Email already registered") {
       return res.status(400).json({ message: "Email já cadastrado" });
     }
-    console.error("Erro ao criar usuário:", error);
+    Logger.error("Erro ao criar usuário", error);
     return res.status(500).json({
       message: "Erro ao criar o usuário",
-      error: error.message,
+      error: env.NODE_ENV === "development" ? error.message : "Erro interno do servidor",
     });
   }
 };
@@ -89,10 +91,10 @@ export const getAllUsers = async (req: Request, res: Response) => {
     const users = await authService.getAllUsers();
     return res.json(users);
   } catch (error: any) {
-    console.error("Erro ao obter usuários:", error);
+    Logger.error("Erro ao obter usuários", error);
     return res.status(500).json({
       message: "Erro ao obter os usuários",
-      error: error.message,
+      error: env.NODE_ENV === "development" ? error.message : "Erro interno do servidor",
     });
   }
 };
@@ -108,10 +110,10 @@ export const getUserById = async (req: Request, res: Response) => {
 
     return res.json(user);
   } catch (error: any) {
-    console.error("Erro ao obter usuário:", error);
+    Logger.error("Erro ao obter usuário", error);
     return res.status(500).json({
       message: "Erro ao obter o usuário",
-      error: error.message,
+      error: env.NODE_ENV === "development" ? error.message : "Erro interno do servidor",
     });
   }
 };
@@ -132,10 +134,10 @@ export const getProfile = async (req: Request, res: Response) => {
 
     return res.json(user);
   } catch (error: any) {
-    console.error("Erro ao obter perfil:", error);
+    Logger.error("Erro ao obter perfil", error);
     return res.status(500).json({
       message: "Erro ao obter o perfil",
-      error: error.message,
+      error: env.NODE_ENV === "development" ? error.message : "Erro interno do servidor",
     });
   }
 };
@@ -154,7 +156,7 @@ export const updateUser = async (req: Request, res: Response) => {
     const user = await authService.updateUser(id, nome, email, tipo_user);
     return res.json(user);
   } catch (error: any) {
-    console.error("Erro ao atualizar usuário:", error);
+    Logger.error("Erro ao atualizar usuário", error);
     const statusCode = error.message === "Usuário não encontrado" ? 404 : 500;
     return res.status(statusCode).json({
       message: error.message || "Erro ao atualizar o usuário",
@@ -174,7 +176,7 @@ export const updateProfile = async (req: Request, res: Response) => {
     const user = await authService.updateProfile(userId, nome, email);
     return res.json(user);
   } catch (error: any) {
-    console.error("Erro ao atualizar perfil:", error);
+    Logger.error("Erro ao atualizar perfil", error);
     const statusCode = error.message === "Usuário não encontrado" ? 404 : 500;
     return res.status(statusCode).json({
       message: error.message || "Erro ao atualizar o perfil",
@@ -188,7 +190,7 @@ export const deleteUser = async (req: Request, res: Response) => {
     await authService.deleteUser(id);
     return res.status(204).send();
   } catch (error: any) {
-    console.error("Erro ao deletar usuário:", error);
+    Logger.error("Erro ao deletar usuário", error);
     const statusCode = error.message === "Usuário não encontrado" ? 404 : 500;
     return res.status(statusCode).json({
       message: error.message || "Erro ao deletar o usuário",
@@ -226,10 +228,10 @@ export const changePassword = async (req: Request, res: Response) => {
     if (error.message === "Current password is incorrect") {
       return res.status(400).json({ message: "Senha atual incorreta" });
     }
-    console.error("Erro ao alterar senha:", error);
+    Logger.error("Erro ao alterar senha", error);
     return res.status(500).json({
       message: "Erro ao alterar a senha",
-      error: error.message,
+      error: env.NODE_ENV === "development" ? error.message : "Erro interno do servidor",
     });
   }
 };

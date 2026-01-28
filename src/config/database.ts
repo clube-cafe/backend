@@ -1,18 +1,14 @@
 import { Sequelize } from "sequelize";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const dialect = (process.env.DB_DIALECT || "postgres") as "postgres" | "mysql";
+import { env } from "./env";
 
 const sequelize = new Sequelize({
-  dialect: dialect,
-  host: process.env.DB_HOST || "localhost",
-  port: Number(process.env.DB_PORT) || 5432,
-  username: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASS || "postgres123",
-  database: process.env.DB_NAME || "clube_cafe",
-  logging: false,
+  dialect: env.DB_DIALECT,
+  host: env.DB_HOST,
+  port: env.DB_PORT,
+  username: env.DB_USER,
+  password: env.DB_PASS,
+  database: env.DB_NAME,
+  logging: env.NODE_ENV === "development" ? console.log : false,
 });
 
 export default sequelize;

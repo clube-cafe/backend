@@ -15,4 +15,6 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   verbose: true,
   testTimeout: 10000,
+  // Define NODE_ENV como 'test' para todos os testes
+  setupFiles: ['<rootDir>/tests/setup-env.ts'],
 };

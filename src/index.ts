@@ -1,8 +1,8 @@
 import express, { Request, Response } from "express";
-import dotenv from "dotenv";
 import cors from "cors";
 import swaggerUi from "swagger-ui-express";
 import sequelize from "./config/database";
+import { env } from "./config/env";
 import { specs } from "./swagger";
 import { setupRoutes } from "./config/routes";
 import { SchedulerJobs } from "./config/SchedulerJobs";
@@ -10,38 +10,23 @@ import { errorHandler, validateContentType, requestLogger } from "./middleware/e
 import { Logger } from "./utils/Logger";
 import "./models";
 
-dotenv.config();
-
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = env.PORT;
 
-/**
- * CORS
- */
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: env.FRONTEND_URL || "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
-/**
- * Middlewares globais
- */
 app.use(express.json({ limit: "10mb" }));
 app.use(requestLogger);
 app.use(validateContentType);
-
-/**
- * Swagger
- */
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
-/**
- * Root
- */
 app.get("/", (req: Request, res: Response) => {
   res.json({
     message: "Bem-vindo ao Clube do Café API",
@@ -51,21 +36,18 @@ app.get("/", (req: Request, res: Response) => {
   });
 });
 
-/**
- * Routes
- */
 setupRoutes(app);
-
-/**
- * Error handler
- */
 app.use(errorHandler);
 
-/**
- * Database & Server
- */
+const syncOptions =
+  env.NODE_ENV === "production"
+    ? { alter: false }
+    : env.NODE_ENV === "test"
+      ? { force: true }
+      : { alter: true };
+
 sequelize
-  .sync({ force: true })
+  .sync(syncOptions)
   .then(() => {
     SchedulerJobs.iniciarJobs();
 
