@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { PagamentoPendenteService } from "../services/PagamentoPendenteService";
 import { STATUS } from "../models/enums";
 import { Logger } from "../utils/Logger";
+import { Validators } from "../utils/Validators";
 
 export class PagamentoPendenteController {
   private pagamentoPendenteService: PagamentoPendenteService;
@@ -13,6 +14,17 @@ export class PagamentoPendenteController {
   async createPagamentoPendente(req: Request, res: Response) {
     try {
       const { user_id, valor, data_vencimento, descricao, status } = req.body;
+
+      if (!Validators.isValidUUID(user_id)) {
+        return res.status(400).json({ message: "user_id inválido" });
+      }
+
+      if (req.user && req.user.id !== user_id) {
+        return res
+          .status(403)
+          .json({ message: "Você não tem permissão para criar recursos para outros usuários" });
+      }
+
       const pagamentoPendente = await this.pagamentoPendenteService.createPagamentoPendente(
         user_id,
         valor,
@@ -48,7 +60,19 @@ export class PagamentoPendenteController {
   async getPagamentoPendenteById(req: Request, res: Response) {
     try {
       const { id } = req.params;
+
+      if (!Validators.isValidUUID(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
       const pagamentoPendente = await this.pagamentoPendenteService.getPagamentoPendenteById(id);
+
+      if (req.user && pagamentoPendente.user_id !== req.user.id) {
+        return res
+          .status(403)
+          .json({ message: "Você não tem permissão para acessar este recurso" });
+      }
+
       return res.json(pagamentoPendente);
     } catch (error: any) {
       Logger.error("Erro ao processar requisição", {
@@ -63,6 +87,17 @@ export class PagamentoPendenteController {
   async getPagamentosPendentesByUserId(req: Request, res: Response) {
     try {
       const { user_id } = req.params;
+
+      if (!Validators.isValidUUID(user_id)) {
+        return res.status(400).json({ message: "user_id inválido" });
+      }
+
+      if (req.user?.id !== user_id) {
+        return res
+          .status(403)
+          .json({ message: "Você não tem permissão para acessar este recurso" });
+      }
+
       const pagamentosPendentes =
         await this.pagamentoPendenteService.getPagamentosPendentesByUserId(user_id);
       return res.json(pagamentosPendentes);
@@ -109,11 +144,20 @@ export class PagamentoPendenteController {
   async getPagamentosPendentesByPeriodo(req: Request, res: Response) {
     try {
       const { data_inicio, data_fim } = req.query;
+
+      if (!data_inicio || !data_fim) {
+        return res.status(400).json({ message: "data_inicio e data_fim são obrigatórios" });
+      }
+
+      const dataInicio = new Date(data_inicio as string);
+      const dataFim = new Date(data_fim as string);
+
+      if (!Validators.isValidDate(dataInicio) || !Validators.isValidDate(dataFim)) {
+        return res.status(400).json({ message: "Datas inválidas" });
+      }
+
       const pagamentosPendentes =
-        await this.pagamentoPendenteService.getPagamentosPendentesByPeriodo(
-          new Date(data_inicio as string),
-          new Date(data_fim as string)
-        );
+        await this.pagamentoPendenteService.getPagamentosPendentesByPeriodo(dataInicio, dataFim);
       return res.json(pagamentosPendentes);
     } catch (error: any) {
       Logger.error("Erro ao processar requisição", {
@@ -127,6 +171,18 @@ export class PagamentoPendenteController {
   async updatePagamentoPendente(req: Request, res: Response) {
     try {
       const { id } = req.params;
+
+      if (!Validators.isValidUUID(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const pendenteExistente = await this.pagamentoPendenteService.getPagamentoPendenteById(id);
+      if (req.user && pendenteExistente.user_id !== req.user.id) {
+        return res
+          .status(403)
+          .json({ message: "Você não tem permissão para modificar este recurso" });
+      }
+
       const { valor, data_vencimento, descricao, status } = req.body;
       const pagamentoPendente = await this.pagamentoPendenteService.updatePagamentoPendente(
         id,
@@ -168,6 +224,18 @@ export class PagamentoPendenteController {
   async deletePagamentoPendente(req: Request, res: Response) {
     try {
       const { id } = req.params;
+
+      if (!Validators.isValidUUID(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const pendente = await this.pagamentoPendenteService.getPagamentoPendenteById(id);
+      if (req.user && pendente.user_id !== req.user.id) {
+        return res
+          .status(403)
+          .json({ message: "Você não tem permissão para deletar este recurso" });
+      }
+
       await this.pagamentoPendenteService.deletePagamentoPendente(id);
       return res.status(204).send();
     } catch (error: any) {
@@ -196,6 +264,17 @@ export class PagamentoPendenteController {
   async getTotalPagamentosPendentesByUser(req: Request, res: Response) {
     try {
       const { user_id } = req.params;
+
+      if (!Validators.isValidUUID(user_id)) {
+        return res.status(400).json({ message: "user_id inválido" });
+      }
+
+      if (req.user?.id !== user_id) {
+        return res
+          .status(403)
+          .json({ message: "Você não tem permissão para acessar este recurso" });
+      }
+
       const total = await this.pagamentoPendenteService.getTotalPagamentosPendentesByUser(user_id);
       return res.json({ total });
     } catch (error: any) {

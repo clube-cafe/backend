@@ -20,13 +20,11 @@ export const login = async (req: Request, res: Response) => {
       ...result,
     });
   } catch (error: any) {
-    if (error.message === "Invalid credentials") {
-      return res.status(400).json({ message: "Invalid email or password" });
+    if (error.statusCode === 401) {
+      return res.status(401).json({ message: error.message || "Invalid email or password" });
     }
-    if (error.message === "User has no password") {
-      return res.status(400).json({
-        message: "Este usuário foi criado sem senha. Por favor, registre-se novamente.",
-      });
+    if (error.statusCode === 400) {
+      return res.status(400).json({ message: error.message });
     }
     Logger.error("Erro no login", error);
     return res.status(500).json({ message: "Error logging in" });
@@ -38,7 +36,7 @@ export const logout = async (req: Request, res: Response) => {
     const token = req.headers.authorization?.split(" ")[1];
 
     if (token) {
-      authService.logout(token);
+      await authService.logout(token);
     }
 
     return res.status(200).json({ message: "Logout successful" });
@@ -48,8 +46,8 @@ export const logout = async (req: Request, res: Response) => {
   }
 };
 
-export const isTokenBlacklisted = (token: string): boolean => {
-  return authService.isTokenBlacklisted(token);
+export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
+  return await authService.isTokenBlacklisted(token);
 };
 
 export const register = async (req: Request, res: Response) => {
@@ -75,8 +73,8 @@ export const register = async (req: Request, res: Response) => {
       ...result,
     });
   } catch (error: any) {
-    if (error.message === "Email already registered") {
-      return res.status(400).json({ message: "Email já cadastrado" });
+    if (error.statusCode === 409) {
+      return res.status(409).json({ message: error.message });
     }
     Logger.error("Erro ao criar usuário", error);
     return res.status(500).json({
@@ -88,7 +86,17 @@ export const register = async (req: Request, res: Response) => {
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
-    const users = await authService.getAllUsers();
+    const limit = parseInt(req.query.limit as string) || 50;
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    if (limit > 100 || limit < 1) {
+      return res.status(400).json({ message: "Limit deve estar entre 1 e 100" });
+    }
+    if (offset < 0) {
+      return res.status(400).json({ message: "Offset deve ser maior ou igual a 0" });
+    }
+
+    const users = await authService.getAllUsers(limit, offset);
     return res.json(users);
   } catch (error: any) {
     Logger.error("Erro ao obter usuários", error);
@@ -120,7 +128,7 @@ export const getUserById = async (req: Request, res: Response) => {
 
 export const getProfile = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.userId || (req as any).userId;
+    const userId = req.user?.id;
 
     if (!userId) {
       return res.status(401).json({ message: "Usuário não autenticado" });
@@ -166,7 +174,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
 export const updateProfile = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.userId || (req as any).userId;
+    const userId = req.user?.id;
     const { nome, email } = req.body;
 
     if (!userId) {
@@ -200,7 +208,7 @@ export const deleteUser = async (req: Request, res: Response) => {
 
 export const changePassword = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.userId || (req as any).userId;
+    const userId = req.user?.id;
     const { currentPassword, newPassword } = req.body;
 
     if (!userId) {
@@ -225,8 +233,8 @@ export const changePassword = async (req: Request, res: Response) => {
       message: "Senha alterada com sucesso",
     });
   } catch (error: any) {
-    if (error.message === "Current password is incorrect") {
-      return res.status(400).json({ message: "Senha atual incorreta" });
+    if (error.statusCode === 401) {
+      return res.status(401).json({ message: error.message });
     }
     Logger.error("Erro ao alterar senha", error);
     return res.status(500).json({

@@ -5,7 +5,7 @@ import { isTokenBlacklisted } from "../controllers/authController";
 /**
  * Middleware de autenticação JWT com verificação de blacklist
  */
-export const authenticate = (req: Request, res: Response, next: NextFunction) => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   const token = req.header("Authorization")?.replace("Bearer ", "");
 
   if (!token) {
@@ -13,13 +13,13 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   }
 
   // Verifica se o token está na blacklist
-  if (isTokenBlacklisted(token)) {
+  if (await isTokenBlacklisted(token)) {
     return res.status(401).json({ message: "Token has been invalidated. Please login again." });
   }
 
   try {
     const decoded = verifyToken(token);
-    (req as any).user = decoded;
+    req.user = decoded as { id: string; username: string };
     next();
   } catch (err) {
     return res.status(400).json({ message: "Invalid token." });

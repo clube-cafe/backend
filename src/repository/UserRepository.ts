@@ -39,10 +39,16 @@ export class UserRepository {
     return user;
   }
 
-  async getAllUsers() {
+  async getAllUsers(limit: number = 50, offset: number = 0) {
+    if (limit > 100) limit = 100;
+    if (limit < 1) limit = 50;
+    if (offset < 0) offset = 0;
+
     return await User.findAll({
       attributes: { exclude: ["deletedAt", "password"] },
       order: [["createdAt", "DESC"]],
+      limit,
+      offset,
     });
   }
 

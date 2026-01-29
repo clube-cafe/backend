@@ -28,9 +28,15 @@ export class PagamentoPendenteRepository {
     return pagamentoPendente;
   }
 
-  async getAllPagamentosPendentes() {
+  async getAllPagamentosPendentes(limit: number = 50, offset: number = 0) {
+    if (limit > 100) limit = 100;
+    if (limit < 1) limit = 50;
+    if (offset < 0) offset = 0;
+
     return await PagamentoPendente.findAll({
       order: [["data_vencimento", "ASC"]],
+      limit,
+      offset,
     });
   }
 

@@ -46,3 +46,10 @@ export class InternalServerError extends AppError {
     this.name = "InternalServerError";
   }
 }
+
+export class ForbiddenError extends AppError {
+  constructor(message: string = "Acesso negado") {
+    super(403, message);
+    this.name = "ForbiddenError";
+  }
+}

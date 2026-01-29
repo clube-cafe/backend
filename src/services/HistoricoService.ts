@@ -130,9 +130,9 @@ export class HistoricoService {
     }
   }
 
-  async getAllHistoricos() {
+  async getAllHistoricos(limit: number = 50, offset: number = 0) {
     try {
-      return await this.historicoRepository.getAllHistorico();
+      return await this.historicoRepository.getAllHistorico(limit, offset);
     } catch (error) {
       Logger.error("Erro ao buscar todos os históricos", {
         error: error instanceof Error ? error.message : String(error),

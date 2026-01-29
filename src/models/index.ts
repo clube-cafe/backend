@@ -3,6 +3,7 @@ import "./Assinatura";
 import "./Pagamento";
 import "./PagamentoPendente";
 import "./Historico";
+import "./TokenBlacklist";
 import { User } from "./User";
 import { Assinatura } from "./Assinatura";
 import { Pagamento } from "./Pagamento";

@@ -157,9 +157,9 @@ export class PagamentoService {
     }
   }
 
-  async getAllPagamentos() {
+  async getAllPagamentos(limit: number = 50, offset: number = 0) {
     try {
-      return await this.pagamentoRepository.getAllPagamentos();
+      return await this.pagamentoRepository.getAllPagamentos(limit, offset);
     } catch (error) {
       Logger.error("Erro ao buscar todos os pagamentos", {
         error: error instanceof Error ? error.message : String(error),

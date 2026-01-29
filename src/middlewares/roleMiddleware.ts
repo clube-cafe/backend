@@ -11,7 +11,7 @@ const userRepo = new UserRepository();
 export const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Pega o userId do objeto user que foi decodificado no middleware de autenticação
-    const userId = (req as any).user?.userId || (req as any).userId;
+    const userId = req.user?.id;
 
     if (!userId) {
       return res.status(401).json({

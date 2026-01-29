@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { AssinaturaService } from "../services/AssinaturaService";
 import { Logger } from "../utils/Logger";
+import { Validators } from "../utils/Validators";
 
 export class AssinaturaController {
   private assinaturaService: AssinaturaService;
@@ -12,6 +13,17 @@ export class AssinaturaController {
   async createAssinatura(req: Request, res: Response) {
     try {
       const { user_id, valor, periodicidade, data_inicio } = req.body;
+
+      if (!Validators.isValidUUID(user_id)) {
+        return res.status(400).json({ message: "user_id inválido" });
+      }
+
+      if (req.user && req.user.id !== user_id) {
+        return res
+          .status(403)
+          .json({ message: "Você não tem permissão para criar recursos para outros usuários" });
+      }
+
       const assinatura = await this.assinaturaService.createAssinatura(
         user_id,
         valor,
@@ -30,7 +42,17 @@ export class AssinaturaController {
 
   async getAllAssinaturas(req: Request, res: Response) {
     try {
-      const assinaturas = await this.assinaturaService.getAllAssinaturas();
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      if (limit > 100 || limit < 1) {
+        return res.status(400).json({ message: "Limit deve estar entre 1 e 100" });
+      }
+      if (offset < 0) {
+        return res.status(400).json({ message: "Offset deve ser maior ou igual a 0" });
+      }
+
+      const assinaturas = await this.assinaturaService.getAllAssinaturas(limit, offset);
       return res.json(assinaturas);
     } catch (error: any) {
       Logger.error("Erro ao processar requisição", {
@@ -44,7 +66,18 @@ export class AssinaturaController {
   async getAssinaturaById(req: Request, res: Response) {
     try {
       const { id } = req.params;
+
+      if (!Validators.isValidUUID(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
       const assinatura = await this.assinaturaService.getAssinaturaById(id);
+
+      if (req.user && assinatura.user_id !== req.user.id) {
+        return res
+          .status(403)
+          .json({ message: "Você não tem permissão para acessar este recurso" });
+      }
       return res.json(assinatura);
     } catch (error: any) {
       Logger.error("Erro ao processar requisição", {
@@ -59,6 +92,17 @@ export class AssinaturaController {
   async getAssinaturasByUserId(req: Request, res: Response) {
     try {
       const { user_id } = req.params;
+
+      if (!Validators.isValidUUID(user_id)) {
+        return res.status(400).json({ message: "user_id inválido" });
+      }
+
+      if (req.user?.id !== user_id) {
+        return res
+          .status(403)
+          .json({ message: "Você não tem permissão para acessar este recurso" });
+      }
+
       const assinaturas = await this.assinaturaService.getAssinaturasByUserId(user_id);
       return res.json(assinaturas);
     } catch (error: any) {
@@ -73,14 +117,26 @@ export class AssinaturaController {
   async updateAssinatura(req: Request, res: Response) {
     try {
       const { id } = req.params;
+
+      if (!Validators.isValidUUID(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const assinatura = await this.assinaturaService.getAssinaturaById(id);
+      if (req.user && assinatura.user_id !== req.user.id) {
+        return res
+          .status(403)
+          .json({ message: "Você não tem permissão para modificar este recurso" });
+      }
+
       const { valor, periodicidade, data_inicio } = req.body;
-      const assinatura = await this.assinaturaService.updateAssinatura(
+      const updatedAssinatura = await this.assinaturaService.updateAssinatura(
         id,
         valor,
         periodicidade,
         data_inicio ? new Date(data_inicio) : undefined
       );
-      return res.json(assinatura);
+      return res.json(updatedAssinatura);
     } catch (error: any) {
       Logger.error("Erro ao processar requisição", {
         error: error instanceof Error ? error.message : String(error),
@@ -94,6 +150,18 @@ export class AssinaturaController {
   async deleteAssinatura(req: Request, res: Response) {
     try {
       const { id } = req.params;
+
+      if (!Validators.isValidUUID(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const assinatura = await this.assinaturaService.getAssinaturaById(id);
+      if (assinatura.user_id !== req.user?.id) {
+        return res
+          .status(403)
+          .json({ message: "Você não tem permissão para deletar este recurso" });
+      }
+
       await this.assinaturaService.deleteAssinatura(id);
       return res.status(204).send();
     } catch (error: any) {
@@ -109,6 +177,17 @@ export class AssinaturaController {
   async createAssinaturaComPendencias(req: Request, res: Response) {
     try {
       const { user_id, valor, periodicidade, data_inicio, dia_vencimento } = req.body;
+
+      if (!Validators.isValidUUID(user_id)) {
+        return res.status(400).json({ message: "user_id inválido" });
+      }
+
+      if (req.user && req.user.id !== user_id) {
+        return res
+          .status(403)
+          .json({ message: "Você não tem permissão para criar recursos para outros usuários" });
+      }
+
       const resultado = await this.assinaturaService.createAssinaturaComPendencias(
         user_id,
         valor,
@@ -132,6 +211,18 @@ export class AssinaturaController {
   async cancelarAssinatura(req: Request, res: Response) {
     try {
       const { assinatura_id } = req.params;
+
+      if (!Validators.isValidUUID(assinatura_id)) {
+        return res.status(400).json({ message: "assinatura_id inválido" });
+      }
+
+      const assinatura = await this.assinaturaService.getAssinaturaById(assinatura_id);
+      if (req.user && assinatura.user_id !== req.user.id) {
+        return res
+          .status(403)
+          .json({ message: "Você não tem permissão para cancelar esta assinatura" });
+      }
+
       const { motivo } = req.body;
       const resultado = await this.assinaturaService.cancelarAssinatura(assinatura_id, motivo);
       return res.status(200).json(resultado);

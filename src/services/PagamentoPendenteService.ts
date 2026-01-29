@@ -1,5 +1,6 @@
 import { PagamentoPendenteRepository } from "../repository/PagamentoPendenteRepository";
 import { UserRepository } from "../repository/UserRepository";
+import { AssinaturaRepository } from "../repository/AssinaturaRepository";
 import { STATUS } from "../models/enums";
 import { TransactionHelper } from "../config/TransactionHelper";
 import { Validators } from "../utils/Validators";
@@ -9,10 +10,12 @@ import { ValidationError, NotFoundError, InternalServerError } from "../utils/Er
 export class PagamentoPendenteService {
   private pagamentoPendenteRepository: PagamentoPendenteRepository;
   private userRepository: UserRepository;
+  private assinaturaRepository: AssinaturaRepository;
 
   constructor() {
     this.pagamentoPendenteRepository = new PagamentoPendenteRepository();
     this.userRepository = new UserRepository();
+    this.assinaturaRepository = new AssinaturaRepository();
   }
 
   async createPagamentoPendente(
@@ -154,9 +157,9 @@ export class PagamentoPendenteService {
     }
   }
 
-  async getAllPagamentosPendentes() {
+  async getAllPagamentosPendentes(limit: number = 50, offset: number = 0) {
     try {
-      return await this.pagamentoPendenteRepository.getAllPagamentosPendentes();
+      return await this.pagamentoPendenteRepository.getAllPagamentosPendentes(limit, offset);
     } catch (error) {
       Logger.error("Erro ao buscar todos os pagamentos pendentes", {
         error: error instanceof Error ? error.message : String(error),

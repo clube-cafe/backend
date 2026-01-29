@@ -52,39 +52,56 @@ export class DelinquenciaService {
       registro.dias_maior_atraso = Math.max(registro.dias_maior_atraso, diasAtraso);
     });
 
-    // Busca dados dos usuários e assinaturas
-    const result = await Promise.all(
-      Array.from(atrasosPorUser.values()).map(async (atraso: any) => {
-        const user = await User.findByPk(atraso.user_id, {
-          attributes: ["id", "nome", "email"],
-          raw: true,
-        });
+    // Busca dados dos usuários e assinaturas em batch (evita N+1)
+    const userIds = Array.from(atrasosPorUser.keys());
 
-        const assinaturas = await Assinatura.findAll({
-          where: {
-            user_id: atraso.user_id,
-            status: STATUS_ASSINATURA.ATIVA,
-          },
-          attributes: ["id", "valor", "periodicidade"],
-          raw: true,
-        });
+    const [users, assinaturas] = await Promise.all([
+      User.findAll({
+        where: {
+          id: { [Op.in]: userIds },
+        },
+        attributes: ["id", "nome", "email"],
+        raw: true,
+      }),
+      Assinatura.findAll({
+        where: {
+          user_id: { [Op.in]: userIds },
+          status: STATUS_ASSINATURA.ATIVA,
+        },
+        attributes: ["id", "user_id", "valor", "periodicidade"],
+        raw: true,
+      }),
+    ]);
 
-        return {
-          user: {
-            id: user?.id,
-            nome: user?.nome,
-            email: user?.email,
-          },
-          assinaturas: assinaturas,
-          atrasos: {
-            quantidade_pagamentos_atrasados: atraso.pagamentos.length,
-            valor_total_atrasado: atraso.valor_total_atrasado,
-            dias_maior_atraso: atraso.dias_maior_atraso,
-            pagamentos_detalhes: atraso.pagamentos,
-          },
-        };
-      })
-    );
+    const usersMap = new Map(users.map((u: any) => [u.id, u]));
+    const assinaturasMap = new Map<string, any[]>();
+
+    assinaturas.forEach((a: any) => {
+      if (!assinaturasMap.has(a.user_id)) {
+        assinaturasMap.set(a.user_id, []);
+      }
+      assinaturasMap.get(a.user_id)!.push(a);
+    });
+
+    const result = Array.from(atrasosPorUser.values()).map((atraso: any) => {
+      const user = usersMap.get(atraso.user_id);
+      const assinaturasDoUser = assinaturasMap.get(atraso.user_id) || [];
+
+      return {
+        user: {
+          id: user?.id,
+          nome: user?.nome,
+          email: user?.email,
+        },
+        assinaturas: assinaturasDoUser,
+        atrasos: {
+          quantidade_pagamentos_atrasados: atraso.pagamentos.length,
+          valor_total_atrasado: atraso.valor_total_atrasado,
+          dias_maior_atraso: atraso.dias_maior_atraso,
+          pagamentos_detalhes: atraso.pagamentos,
+        },
+      };
+    });
 
     return result.sort(
       (a: any, b: any) => b.atrasos.valor_total_atrasado - a.atrasos.valor_total_atrasado

@@ -26,9 +26,15 @@ export class PagamentoRepository {
     return pagamento;
   }
 
-  async getAllPagamentos() {
+  async getAllPagamentos(limit: number = 50, offset: number = 0) {
+    if (limit > 100) limit = 100;
+    if (limit < 1) limit = 50;
+    if (offset < 0) offset = 0;
+
     return await Pagamento.findAll({
       order: [["data_pagamento", "DESC"]],
+      limit,
+      offset,
     });
   }
 

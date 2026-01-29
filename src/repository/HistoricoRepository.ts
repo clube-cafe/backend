@@ -25,9 +25,15 @@ export class HistoricoRepository {
     return historico;
   }
 
-  async getAllHistorico() {
+  async getAllHistorico(limit: number = 50, offset: number = 0) {
+    if (limit > 100) limit = 100;
+    if (limit < 1) limit = 50;
+    if (offset < 0) offset = 0;
+
     return await Historico.findAll({
       order: [["data", "DESC"]],
+      limit,
+      offset,
     });
   }
 

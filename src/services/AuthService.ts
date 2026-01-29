@@ -1,26 +1,29 @@
 import { UserRepository } from "../repository/UserRepository";
 import { TIPO_USER } from "../models/enums";
 import { comparePassword, generateToken, hashPassword } from "../utils/auth";
+import { UnauthorizedError, ConflictError, ValidationError } from "../utils/Errors";
+import { TokenBlacklist } from "../models/TokenBlacklist";
+import { Op } from "sequelize";
+import { Logger } from "../utils/Logger";
 
 const userRepo = new UserRepository();
-const tokenBlacklist = new Set<string>();
 
 export class AuthService {
   async login(email: string, password: string) {
     const user = await userRepo.getUserByEmail(email);
 
     if (!user) {
-      throw new Error("Invalid credentials");
+      throw new UnauthorizedError("Credenciais inválidas");
     }
 
     if (!user.password) {
-      throw new Error("User has no password");
+      throw new ValidationError("Usuário não possui senha cadastrada");
     }
 
     const isPasswordValid = await comparePassword(password, user.password);
 
     if (!isPasswordValid) {
-      throw new Error("Invalid credentials");
+      throw new UnauthorizedError("Credenciais inválidas");
     }
 
     const token = generateToken(user.id, user.email);
@@ -40,7 +43,7 @@ export class AuthService {
     const existingUser = await userRepo.getUserByEmail(email);
 
     if (existingUser) {
-      throw new Error("Email already registered");
+      throw new ConflictError("Email já está registrado");
     }
 
     const user = await userRepo.createUser(nome, email, tipo_user, password);
@@ -57,12 +60,48 @@ export class AuthService {
     };
   }
 
-  logout(token: string) {
-    tokenBlacklist.add(token);
+  async logout(token: string) {
+    try {
+      const decoded = require("jsonwebtoken").decode(token);
+      const expiresAt = decoded?.exp
+        ? new Date(decoded.exp * 1000)
+        : new Date(Date.now() + 3600000);
+
+      await TokenBlacklist.create({
+        token,
+        expiresAt,
+      });
+
+      await this.cleanupExpiredTokens();
+    } catch (error) {
+      Logger.error("Erro ao adicionar token à blacklist", error);
+    }
   }
 
-  isTokenBlacklisted(token: string): boolean {
-    return tokenBlacklist.has(token);
+  async isTokenBlacklisted(token: string): Promise<boolean> {
+    try {
+      const blacklisted = await TokenBlacklist.findOne({
+        where: { token },
+      });
+      return !!blacklisted;
+    } catch (error) {
+      Logger.error("Erro ao verificar blacklist", error);
+      return false;
+    }
+  }
+
+  private async cleanupExpiredTokens() {
+    try {
+      await TokenBlacklist.destroy({
+        where: {
+          expiresAt: {
+            [Op.lt]: new Date(),
+          },
+        },
+      });
+    } catch (error) {
+      Logger.error("Erro ao limpar tokens expirados", error);
+    }
   }
 
   async getProfile(userId: string) {
@@ -77,20 +116,20 @@ export class AuthService {
     const user = await userRepo.getUserById(userId);
 
     if (!user.password) {
-      throw new Error("User has no password");
+      throw new ValidationError("Usuário não possui senha cadastrada");
     }
 
     const isPasswordValid = await comparePassword(currentPassword, user.password);
 
     if (!isPasswordValid) {
-      throw new Error("Current password is incorrect");
+      throw new UnauthorizedError("Senha atual incorreta");
     }
 
     await userRepo.updatePassword(userId, newPassword);
   }
 
-  async getAllUsers() {
-    return await userRepo.getAllUsers();
+  async getAllUsers(limit: number = 50, offset: number = 0) {
+    return await userRepo.getAllUsers(limit, offset);
   }
 
   async getUserById(id: string) {
@@ -107,4 +146,3 @@ export class AuthService {
 }
 
 export const authService = new AuthService();
-export { tokenBlacklist };

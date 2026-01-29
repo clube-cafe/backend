@@ -141,9 +141,9 @@ export class AssinaturaService {
     }
   }
 
-  async getAllAssinaturas() {
+  async getAllAssinaturas(limit: number = 50, offset: number = 0) {
     try {
-      return await this.assinaturaRepository.getAllAssinaturas();
+      return await this.assinaturaRepository.getAllAssinaturas(limit, offset);
     } catch (error) {
       Logger.error("Erro ao buscar todas as assinaturas", {
         error: error instanceof Error ? error.message : String(error),

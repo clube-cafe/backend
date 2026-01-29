@@ -30,12 +30,20 @@ export class AssinaturaRepository {
     return assinatura;
   }
 
-  async getAllAssinaturas() {
-    return await Assinatura.findAll();
+  async getAllAssinaturas(limit: number = 50, offset: number = 0) {
+    if (limit > 100) limit = 100;
+    if (limit < 1) limit = 50;
+    if (offset < 0) offset = 0;
+
+    return await Assinatura.findAll({
+      limit,
+      offset,
+      order: [["createdAt", "DESC"]],
+    });
   }
 
-  async getAssinaturaById(id: string) {
-    return await Assinatura.findByPk(id);
+  async getAssinaturaById(id: string, transaction?: Transaction) {
+    return await Assinatura.findByPk(id, { transaction });
   }
 
   async getAssinaturasByUserId(user_id: string) {
