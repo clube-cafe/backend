@@ -2,6 +2,9 @@ import { AssinaturaController } from "../../../src/controllers/AssinaturaControl
 import { Request, Response } from "express";
 
 describe("AssinaturaController", () => {
+  const VALID_UUID = "123e4567-e89b-12d3-a456-426614174000";
+  const VALID_UUID_2 = "223e4567-e89b-12d3-a456-426614174000";
+
   const makeRes = () => {
     const res: Partial<Response> = {};
     res.status = jest.fn().mockReturnValue(res);
@@ -10,30 +13,38 @@ describe("AssinaturaController", () => {
     return res as Response & { status: jest.Mock; json: jest.Mock; send: jest.Mock };
   };
 
-  const makeReq = (data: Partial<Request>) => data as Request;
+  const makeReq = (data: Partial<Request>) => {
+    const req = {
+      ...data,
+      query: data.query || {},
+      user: data.user || undefined,
+    } as Request;
+    return req;
+  };
 
   it("deve criar uma assinatura e retornar 201", async () => {
     const controller = new AssinaturaController();
     const mockService = {
-      createAssinatura: jest.fn().mockResolvedValue({ id: "1", user_id: "u", valor: 10 }),
+      createAssinatura: jest.fn().mockResolvedValue({ id: "1", user_id: VALID_UUID, valor: 10 }),
     } as any;
     (controller as any).assinaturaService = mockService;
 
     const req = makeReq({
-      body: { user_id: "u", valor: 10, periodicidade: "MENSAL", data_inicio: "2024-01-01" },
+      body: { user_id: "123e4567-e89b-12d3-a456-426614174000", valor: 10, periodicidade: "MENSAL", data_inicio: "2024-01-01" },
+      user: { id: "123e4567-e89b-12d3-a456-426614174000", username: "test" },
     });
     const res = makeRes();
 
     await controller.createAssinatura(req, res);
 
     expect(mockService.createAssinatura).toHaveBeenCalledWith(
-      "u",
+      "123e4567-e89b-12d3-a456-426614174000",
       10,
       "MENSAL",
       new Date("2024-01-01")
     );
     expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({ id: "1", user_id: "u", valor: 10 });
+    expect(res.json).toHaveBeenCalledWith({ id: "1", user_id: "123e4567-e89b-12d3-a456-426614174000", valor: 10 });
   });
 
   it("deve retornar 404 quando assinatura não encontrada", async () => {
@@ -43,7 +54,10 @@ describe("AssinaturaController", () => {
     } as any;
     (controller as any).assinaturaService = mockService;
 
-    const req = makeReq({ params: { id: "missing" } });
+    const req = makeReq({ 
+      params: { id: "123e4567-e89b-12d3-a456-426614174000" },
+      user: { id: "123e4567-e89b-12d3-a456-426614174000", username: "test" },
+    });
     const res = makeRes();
 
     await controller.getAssinaturaById(req, res);
@@ -59,7 +73,7 @@ describe("AssinaturaController", () => {
     } as any;
     (controller as any).assinaturaService = mockService;
 
-    const req = makeReq({});
+    const req = makeReq({ query: {} });
     const res = makeRes();
 
     await controller.getAllAssinaturas(req, res);
@@ -73,7 +87,7 @@ describe("AssinaturaController", () => {
     } as any;
     (controller as any).assinaturaService = mockService;
 
-    const req = makeReq({});
+    const req = makeReq({ query: {} });
     const res = makeRes();
 
     await controller.getAllAssinaturas(req, res);
@@ -84,15 +98,18 @@ describe("AssinaturaController", () => {
   it("deve obter assinatura por id (200)", async () => {
     const controller = new AssinaturaController();
     const mockService = {
-      getAssinaturaById: jest.fn().mockResolvedValue({ id: "a1" }),
+      getAssinaturaById: jest.fn().mockResolvedValue({ id: VALID_UUID, user_id: VALID_UUID }),
     } as any;
     (controller as any).assinaturaService = mockService;
 
-    const req = makeReq({ params: { id: "a1" } });
+    const req = makeReq({ 
+      params: { id: VALID_UUID },
+      user: { id: VALID_UUID, username: "test" },
+    });
     const res = makeRes();
 
     await controller.getAssinaturaById(req, res);
-    expect(res.json).toHaveBeenCalledWith({ id: "a1" });
+    expect(res.json).toHaveBeenCalledWith({ id: VALID_UUID, user_id: VALID_UUID });
   });
 
   it("deve retornar 400 quando erro genérico em getById", async () => {
@@ -102,7 +119,10 @@ describe("AssinaturaController", () => {
     } as any;
     (controller as any).assinaturaService = mockService;
 
-    const req = makeReq({ params: { id: "a1" } });
+    const req = makeReq({ 
+      params: { id: VALID_UUID },
+      user: { id: VALID_UUID, username: "test" },
+    });
     const res = makeRes();
 
     await controller.getAssinaturaById(req, res);
@@ -117,7 +137,10 @@ describe("AssinaturaController", () => {
     } as any;
     (controller as any).assinaturaService = mockService;
 
-    const req = makeReq({ params: { user_id: "u1" } });
+    const req = makeReq({ 
+      params: { user_id: VALID_UUID },
+      user: { id: VALID_UUID, username: "test" },
+    });
     const res = makeRes();
 
     await controller.getAssinaturasByUserId(req, res);
@@ -131,7 +154,10 @@ describe("AssinaturaController", () => {
     } as any;
     (controller as any).assinaturaService = mockService;
 
-    const req = makeReq({ params: { user_id: "u1" } });
+    const req = makeReq({ 
+      params: { user_id: VALID_UUID },
+      user: { id: VALID_UUID, username: "test" },
+    });
     const res = makeRes();
 
     await controller.getAssinaturasByUserId(req, res);
@@ -142,25 +168,34 @@ describe("AssinaturaController", () => {
   it("deve atualizar assinatura (200)", async () => {
     const controller = new AssinaturaController();
     const mockService = {
-      updateAssinatura: jest.fn().mockResolvedValue({ id: "a1", valor: 20 }),
+      getAssinaturaById: jest.fn().mockResolvedValue({ id: VALID_UUID, user_id: VALID_UUID }),
+      updateAssinatura: jest.fn().mockResolvedValue({ id: VALID_UUID, valor: 20 }),
     } as any;
     (controller as any).assinaturaService = mockService;
 
-    const req = makeReq({ params: { id: "a1" }, body: { valor: 20, periodicidade: "MENSAL" } });
+    const req = makeReq({ 
+      params: { id: VALID_UUID }, 
+      body: { valor: 20, periodicidade: "MENSAL" },
+      user: { id: VALID_UUID, username: "test" },
+    });
     const res = makeRes();
 
     await controller.updateAssinatura(req, res);
-    expect(res.json).toHaveBeenCalledWith({ id: "a1", valor: 20 });
+    expect(res.json).toHaveBeenCalledWith({ id: VALID_UUID, valor: 20 });
   });
 
   it("deve retornar 404 ao atualizar assinatura não encontrada", async () => {
     const controller = new AssinaturaController();
     const mockService = {
-      updateAssinatura: jest.fn().mockRejectedValue(new Error("Assinatura não encontrada")),
+      getAssinaturaById: jest.fn().mockRejectedValue(new Error("Assinatura não encontrada")),
     } as any;
     (controller as any).assinaturaService = mockService;
 
-    const req = makeReq({ params: { id: "missing" }, body: {} });
+    const req = makeReq({ 
+      params: { id: VALID_UUID }, 
+      body: {},
+      user: { id: VALID_UUID, username: "test" },
+    });
     const res = makeRes();
 
     await controller.updateAssinatura(req, res);
@@ -170,10 +205,16 @@ describe("AssinaturaController", () => {
 
   it("deve deletar assinatura (204)", async () => {
     const controller = new AssinaturaController();
-    const mockService = { deleteAssinatura: jest.fn().mockResolvedValue(true) } as any;
+    const mockService = {
+      getAssinaturaById: jest.fn().mockResolvedValue({ id: VALID_UUID, user_id: VALID_UUID }),
+      deleteAssinatura: jest.fn().mockResolvedValue(true),
+    } as any;
     (controller as any).assinaturaService = mockService;
 
-    const req = makeReq({ params: { id: "a1" } });
+    const req = makeReq({ 
+      params: { id: VALID_UUID },
+      user: { id: VALID_UUID, username: "test" },
+    });
     const res = makeRes();
 
     await controller.deleteAssinatura(req, res);
@@ -184,11 +225,14 @@ describe("AssinaturaController", () => {
   it("deve retornar 404 ao deletar assinatura não encontrada", async () => {
     const controller = new AssinaturaController();
     const mockService = {
-      deleteAssinatura: jest.fn().mockRejectedValue(new Error("Assinatura não encontrada")),
+      getAssinaturaById: jest.fn().mockRejectedValue(new Error("Assinatura não encontrada")),
     } as any;
     (controller as any).assinaturaService = mockService;
 
-    const req = makeReq({ params: { id: "missing" } });
+    const req = makeReq({ 
+      params: { id: VALID_UUID },
+      user: { id: VALID_UUID, username: "test" },
+    });
     const res = makeRes();
 
     await controller.deleteAssinatura(req, res);
@@ -205,12 +249,13 @@ describe("AssinaturaController", () => {
 
     const req = makeReq({
       body: {
-        user_id: "u",
+        user_id: VALID_UUID,
         valor: 10,
         periodicidade: "MENSAL",
         data_inicio: "2024-01-01",
         dia_vencimento: 10,
       },
+      user: { id: VALID_UUID, username: "test" },
     });
     const res = makeRes();
 
@@ -229,7 +274,7 @@ describe("AssinaturaController", () => {
     } as any;
     (controller as any).assinaturaService = mockService;
 
-    const req = makeReq({ body: {} });
+    const req = makeReq({ body: { user_id: VALID_UUID } });
     const res = makeRes();
 
     await controller.createAssinaturaComPendencias(req, res);
@@ -240,11 +285,16 @@ describe("AssinaturaController", () => {
   it("deve cancelar assinatura (200)", async () => {
     const controller = new AssinaturaController();
     const mockService = {
+      getAssinaturaById: jest.fn().mockResolvedValue({ id: VALID_UUID, user_id: VALID_UUID }),
       cancelarAssinatura: jest.fn().mockResolvedValue({ cancelada: true }),
     } as any;
     (controller as any).assinaturaService = mockService;
 
-    const req = makeReq({ params: { assinatura_id: "a1" }, body: { motivo: "teste" } });
+    const req = makeReq({ 
+      params: { assinatura_id: VALID_UUID }, 
+      body: { motivo: "teste" },
+      user: { id: VALID_UUID, username: "test" },
+    });
     const res = makeRes();
 
     await controller.cancelarAssinatura(req, res);
@@ -255,11 +305,15 @@ describe("AssinaturaController", () => {
   it("deve retornar 404 ao cancelar assinatura não encontrada", async () => {
     const controller = new AssinaturaController();
     const mockService = {
-      cancelarAssinatura: jest.fn().mockRejectedValue(new Error("Assinatura não encontrada")),
+      getAssinaturaById: jest.fn().mockRejectedValue(new Error("Assinatura não encontrada")),
     } as any;
     (controller as any).assinaturaService = mockService;
 
-    const req = makeReq({ params: { assinatura_id: "missing" }, body: { motivo: "teste" } });
+    const req = makeReq({ 
+      params: { assinatura_id: VALID_UUID }, 
+      body: { motivo: "teste" },
+      user: { id: VALID_UUID, username: "test" },
+    });
     const res = makeRes();
 
     await controller.cancelarAssinatura(req, res);

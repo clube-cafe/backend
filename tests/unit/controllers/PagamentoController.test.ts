@@ -1,29 +1,21 @@
 import { PagamentoController } from "../../../src/controllers/PagamentoController";
 import { Request, Response } from "express";
+import { VALID_UUID, makeRes, makeReq, makeAuthenticatedReq } from "../test-helpers";
 
 describe("PagamentoController", () => {
-  const makeRes = () => {
-    const res: Partial<Response> = {};
-    res.status = jest.fn().mockReturnValue(res);
-    res.json = jest.fn().mockReturnValue(res);
-    res.send = jest.fn().mockReturnValue(res);
-    return res as Response & { status: jest.Mock; json: jest.Mock; send: jest.Mock };
-  };
-
-  const makeReq = (data: Partial<Request>) => data as Request;
 
   it("deve criar um pagamento e retornar 201", async () => {
     const controller = new PagamentoController();
     const mockService = {
       createPagamento: jest
         .fn()
-        .mockResolvedValue({ id: "p1", user_id: "u", valor: 50, forma_pagamento: "PIX" }),
+        .mockResolvedValue({ id: "p1", user_id: "123e4567-e89b-12d3-a456-426614174000", valor: 50, forma_pagamento: "PIX" }),
     } as any;
     (controller as any).pagamentoService = mockService;
 
-    const req = makeReq({
+    const req = makeAuthenticatedReq({
       body: {
-        user_id: "u",
+        user_id: VALID_UUID,
         valor: 50,
         data_pagamento: "2024-02-01",
         forma_pagamento: "PIX",
@@ -35,14 +27,14 @@ describe("PagamentoController", () => {
     await controller.createPagamento(req, res);
 
     expect(mockService.createPagamento).toHaveBeenCalledWith(
-      "u",
+      VALID_UUID,
       50,
       new Date("2024-02-01"),
       "PIX",
       "obs"
     );
     expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({ id: "p1", user_id: "u", valor: 50, forma_pagamento: "PIX" });
+    expect(res.json).toHaveBeenCalledWith({ id: "p1", user_id: "123e4567-e89b-12d3-a456-426614174000", valor: 50, forma_pagamento: "PIX" });
   });
 
   it("deve retornar 400 quando forma de pagamento é inválida", async () => {
@@ -66,7 +58,7 @@ describe("PagamentoController", () => {
     const mockService = { getAllPagamentos: jest.fn().mockResolvedValue([{ id: "p1" }]) } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.getAllPagamentos(makeReq({}), res);
+    await controller.getAllPagamentos(makeReq({ query: {} }), res);
     expect(res.json).toHaveBeenCalledWith([{ id: "p1" }]);
   });
 
@@ -75,18 +67,20 @@ describe("PagamentoController", () => {
     const mockService = { getAllPagamentos: jest.fn().mockRejectedValue(new Error("falha")) } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.getAllPagamentos(makeReq({}), res);
+    await controller.getAllPagamentos(makeReq({ query: {} }), res);
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ message: "Erro ao obter pagamentos", error: "falha" });
   });
 
   it("deve obter pagamento por id (200)", async () => {
     const controller = new PagamentoController();
-    const mockService = { getPagamentoById: jest.fn().mockResolvedValue({ id: "p1" }) } as any;
+    const mockService = { 
+      getPagamentoById: jest.fn().mockResolvedValue({ id: VALID_UUID, user_id: VALID_UUID }) 
+    } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.getPagamentoById(makeReq({ params: { id: "p1" } }), res);
-    expect(res.json).toHaveBeenCalledWith({ id: "p1" });
+    await controller.getPagamentoById(makeAuthenticatedReq({ params: { id: VALID_UUID } }), res);
+    expect(res.json).toHaveBeenCalledWith({ id: VALID_UUID, user_id: VALID_UUID });
   });
 
   it("deve retornar 404 quando pagamento não encontrado", async () => {
@@ -94,7 +88,7 @@ describe("PagamentoController", () => {
     const mockService = { getPagamentoById: jest.fn().mockRejectedValue(new Error("Pagamento não encontrado")) } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.getPagamentoById(makeReq({ params: { id: "missing" } }), res);
+    await controller.getPagamentoById(makeAuthenticatedReq({ params: { id: VALID_UUID } }), res);
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({ message: "Pagamento não encontrado" });
   });
@@ -104,7 +98,7 @@ describe("PagamentoController", () => {
     const mockService = { getPagamentosByUserId: jest.fn().mockResolvedValue([{ id: "p1" }]) } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.getPagamentosByUserId(makeReq({ params: { user_id: "u1" } }), res);
+    await controller.getPagamentosByUserId(makeAuthenticatedReq({ params: { user_id: VALID_UUID } }), res);
     expect(res.json).toHaveBeenCalledWith([{ id: "p1" }]);
   });
 
@@ -113,7 +107,7 @@ describe("PagamentoController", () => {
     const mockService = { getPagamentosByUserId: jest.fn().mockRejectedValue(new Error("erro user")) } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.getPagamentosByUserId(makeReq({ params: { user_id: "u1" } }), res);
+    await controller.getPagamentosByUserId(makeAuthenticatedReq({ params: { user_id: VALID_UUID } }), res);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ message: "erro user" });
   });
@@ -141,46 +135,58 @@ describe("PagamentoController", () => {
     const mockService = { getPagamentosByDateRange: jest.fn().mockRejectedValue(new Error("erro periodo")) } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.getPagamentosByDateRange(makeReq({ query: { data_inicio: "x", data_fim: "y" } }), res);
+    await controller.getPagamentosByDateRange(makeReq({ 
+      query: { data_inicio: "x", data_fim: "y" } 
+    }), res);
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "erro periodo" });
+    expect(res.json).toHaveBeenCalledWith({ message: "Datas inválidas" });
   });
 
   it("deve atualizar pagamento (200)", async () => {
     const controller = new PagamentoController();
-    const mockService = { updatePagamento: jest.fn().mockResolvedValue({ id: "p1", valor: 60 }) } as any;
+    const mockService = { 
+      getPagamentoById: jest.fn().mockResolvedValue({ id: VALID_UUID, user_id: VALID_UUID }),
+      updatePagamento: jest.fn().mockResolvedValue({ id: VALID_UUID, valor: 60 }) 
+    } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.updatePagamento(makeReq({ params: { id: "p1" }, body: { valor: 60 } }), res);
-    expect(res.json).toHaveBeenCalledWith({ id: "p1", valor: 60 });
+    await controller.updatePagamento(makeAuthenticatedReq({ params: { id: VALID_UUID }, body: { valor: 60 } }), res);
+    expect(res.json).toHaveBeenCalledWith({ id: VALID_UUID, valor: 60 });
   });
 
   it("deve retornar 404 ao atualizar pagamento não encontrado", async () => {
     const controller = new PagamentoController();
-    const mockService = { updatePagamento: jest.fn().mockRejectedValue(new Error("Pagamento não encontrado")) } as any;
+    const mockService = { 
+      getPagamentoById: jest.fn().mockRejectedValue(new Error("Pagamento não encontrado"))
+    } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.updatePagamento(makeReq({ params: { id: "missing" }, body: {} }), res);
+    await controller.updatePagamento(makeAuthenticatedReq({ params: { id: VALID_UUID }, body: {} }), res);
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({ message: "Pagamento não encontrado" });
   });
 
   it("deve deletar pagamento (204)", async () => {
     const controller = new PagamentoController();
-    const mockService = { deletePagamento: jest.fn().mockResolvedValue(true) } as any;
+    const mockService = { 
+      getPagamentoById: jest.fn().mockResolvedValue({ id: VALID_UUID, user_id: VALID_UUID }),
+      deletePagamento: jest.fn().mockResolvedValue(true) 
+    } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.deletePagamento(makeReq({ params: { id: "p1" } }), res);
+    await controller.deletePagamento(makeAuthenticatedReq({ params: { id: VALID_UUID } }), res);
     expect(res.status).toHaveBeenCalledWith(204);
     expect(res.send).toHaveBeenCalled();
   });
 
   it("deve retornar 404 ao deletar pagamento não encontrado", async () => {
     const controller = new PagamentoController();
-    const mockService = { deletePagamento: jest.fn().mockRejectedValue(new Error("Pagamento não encontrado")) } as any;
+    const mockService = { 
+      getPagamentoById: jest.fn().mockRejectedValue(new Error("Pagamento não encontrado"))
+    } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.deletePagamento(makeReq({ params: { id: "missing" } }), res);
+    await controller.deletePagamento(makeAuthenticatedReq({ params: { id: VALID_UUID } }), res);
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({ message: "Pagamento não encontrado" });
   });
@@ -209,7 +215,7 @@ describe("PagamentoController", () => {
     const mockService = { getTotalPagamentosByUser: jest.fn().mockResolvedValue(40) } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.getTotalPagamentosByUser(makeReq({ params: { user_id: "u1" } }), res);
+    await controller.getTotalPagamentosByUser(makeAuthenticatedReq({ params: { user_id: VALID_UUID } }), res);
     expect(res.json).toHaveBeenCalledWith({ total: 40 });
   });
 
@@ -218,7 +224,7 @@ describe("PagamentoController", () => {
     const mockService = { getTotalPagamentosByUser: jest.fn().mockRejectedValue(new Error("erro")) } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.getTotalPagamentosByUser(makeReq({ params: { user_id: "u1" } }), res);
+    await controller.getTotalPagamentosByUser(makeAuthenticatedReq({ params: { user_id: VALID_UUID } }), res);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ message: "erro" });
   });
@@ -229,9 +235,9 @@ describe("PagamentoController", () => {
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
     await controller.registrarPagamentoCompleto(
-      makeReq({
+      makeAuthenticatedReq({
         body: {
-          user_id: "u",
+          user_id: VALID_UUID,
           valor: 10,
           data_pagamento: "2024-01-01",
           forma_pagamento: "PIX",
@@ -250,7 +256,7 @@ describe("PagamentoController", () => {
     const mockService = { registrarPagamentoCompleto: jest.fn().mockRejectedValue(new Error("erro")) } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.registrarPagamentoCompleto(makeReq({ body: {} }), res);
+    await controller.registrarPagamentoCompleto(makeAuthenticatedReq({ body: { user_id: VALID_UUID } }), res);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ message: "erro" });
   });
