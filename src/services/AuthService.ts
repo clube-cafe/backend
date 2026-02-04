@@ -1,6 +1,6 @@
 import { UserRepository } from "../repository/UserRepository";
 import { TIPO_USER } from "../models/enums";
-import { comparePassword, generateToken, hashPassword } from "../utils/auth";
+import { comparePassword, generateToken } from "../utils/auth";
 import { UnauthorizedError, ConflictError, ValidationError } from "../utils/Errors";
 import { TokenBlacklist } from "../models/TokenBlacklist";
 import { Op } from "sequelize";
@@ -39,7 +39,12 @@ export class AuthService {
     };
   }
 
-  async register(nome: string, email: string, password: string, tipo_user: TIPO_USER) {
+  async register(
+    nome: string,
+    email: string,
+    password: string,
+    tipo_user: TIPO_USER = TIPO_USER.ASSINANTE
+  ) {
     const existingUser = await userRepo.getUserByEmail(email);
 
     if (existingUser) {

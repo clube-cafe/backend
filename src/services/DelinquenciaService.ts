@@ -1,8 +1,9 @@
 import { PagamentoPendente } from "../models/PagamentoPendente";
 import { Assinatura } from "../models/Assinatura";
+import { PlanoAssinatura } from "../models/PlanoAssinatura";
 import { User } from "../models/User";
 import { STATUS, STATUS_ASSINATURA } from "../models/enums";
-import { Op } from "sequelize";
+import { Op, col } from "sequelize";
 
 export class DelinquenciaService {
   async obterAssinaturasEmAtraso() {
@@ -68,7 +69,13 @@ export class DelinquenciaService {
           user_id: { [Op.in]: userIds },
           status: STATUS_ASSINATURA.ATIVA,
         },
-        attributes: ["id", "user_id", "valor", "periodicidade"],
+        attributes: [
+          "id",
+          "user_id",
+          [col("PlanoAssinatura.valor"), "valor"],
+          [col("PlanoAssinatura.periodicidade"), "periodicidade"],
+        ],
+        include: [{ model: PlanoAssinatura, attributes: [] }],
         raw: true,
       }),
     ]);
@@ -123,7 +130,13 @@ export class DelinquenciaService {
 
     const assinaturas = await Assinatura.findAll({
       where: { user_id },
-      attributes: ["id", "valor", "periodicidade", "status"],
+      attributes: [
+        "id",
+        "status",
+        [col("PlanoAssinatura.valor"), "valor"],
+        [col("PlanoAssinatura.periodicidade"), "periodicidade"],
+      ],
+      include: [{ model: PlanoAssinatura, attributes: [] }],
       raw: true,
     });
 

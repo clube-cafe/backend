@@ -2,6 +2,7 @@ import { AssinaturaRepository } from "../repository/AssinaturaRepository";
 import { PagamentoPendenteRepository } from "../repository/PagamentoPendenteRepository";
 import { HistoricoRepository } from "../repository/HistoricoRepository";
 import { UserRepository } from "../repository/UserRepository";
+import { PlanoAssinaturaRepository } from "../repository/PlanoAssinaturaRepository";
 import { PERIODO, STATUS, STATUS_ASSINATURA } from "../models/enums";
 import { TransactionHelper } from "../config/TransactionHelper";
 import { Assinatura } from "../models/Assinatura";
@@ -20,33 +21,44 @@ export class AssinaturaService {
   private pagamentoPendenteRepository: PagamentoPendenteRepository;
   private historicoRepository: HistoricoRepository;
   private userRepository: UserRepository;
+  private planoRepository: PlanoAssinaturaRepository;
 
   constructor() {
     this.assinaturaRepository = new AssinaturaRepository();
     this.pagamentoPendenteRepository = new PagamentoPendenteRepository();
     this.historicoRepository = new HistoricoRepository();
     this.userRepository = new UserRepository();
+    this.planoRepository = new PlanoAssinaturaRepository();
   }
 
-  async createAssinatura(
-    user_id: string,
-    valor: number,
-    periodicidade: PERIODO,
-    data_inicio: Date
-  ) {
-    if (!user_id || !valor || !periodicidade || !data_inicio) {
-      throw new ValidationError("Campos obrigatórios: user_id, valor, periodicidade, data_inicio");
+  async createAssinatura(user_id: string, plano_id: string) {
+    if (!user_id || !plano_id) {
+      throw new ValidationError("Campos obrigatórios: user_id, plano_id");
     }
 
     if (!Validators.isValidUUID(user_id)) {
       throw new ValidationError("user_id inválido");
     }
 
+    if (!Validators.isValidUUID(plano_id)) {
+      throw new ValidationError("plano_id inválido");
+    }
+
     try {
       await this.userRepository.getUserById(user_id);
     } catch (error) {
       if (error instanceof NotFoundError) {
         throw new ValidationError("Usuário não encontrado");
+      }
+      throw error;
+    }
+
+    // Verificar se o plano existe
+    try {
+      await this.planoRepository.getPlanoById(plano_id);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new ValidationError("Plano de assinatura não encontrado");
       }
       throw error;
     }
@@ -58,43 +70,36 @@ export class AssinaturaService {
       );
     }
 
-    if (!Validators.isValidMoney(valor)) {
-      throw new ValidationError(
-        "Valor deve ser um número positivo, finito e não superior a R$ 1.000.000"
-      );
-    }
+    // A data de início será definida automaticamente quando o pagamento for confirmado
+    const data_inicio = new Date();
 
-    if (!Object.values(PERIODO).includes(periodicidade)) {
-      throw new ValidationError("Periodicidade inválida: " + Object.values(PERIODO).join(", "));
-    }
-
-    if (!Validators.isValidDate(data_inicio)) {
-      throw new ValidationError("Data de início inválida");
-    }
-
-    return await this.assinaturaRepository.createAssinatura(
-      user_id,
-      valor,
-      periodicidade,
-      data_inicio
-    );
+    return await this.assinaturaRepository.createAssinatura(user_id, plano_id, data_inicio);
   }
 
-  async createAssinaturaWithTransaction(
-    user_id: string,
-    valor: number,
-    periodicidade: PERIODO,
-    data_inicio: Date
-  ) {
+  async createAssinaturaWithTransaction(user_id: string, plano_id: string) {
     if (!Validators.isValidUUID(user_id)) {
       throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
     }
 
+    if (!Validators.isValidUUID(plano_id)) {
+      throw new ValidationError("plano_id é obrigatório e deve ser um UUID válido");
+    }
+
     try {
       await this.userRepository.getUserById(user_id);
     } catch (error) {
       if (error instanceof NotFoundError) {
         throw new ValidationError("Usuário não encontrado");
+      }
+      throw error;
+    }
+
+    // Verificar se o plano existe
+    try {
+      await this.planoRepository.getPlanoById(plano_id);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new ValidationError("Plano de assinatura não encontrado");
       }
       throw error;
     }
@@ -106,26 +111,13 @@ export class AssinaturaService {
       );
     }
 
-    if (!Validators.isValidMoney(valor)) {
-      throw new ValidationError("Valor deve ser um número positivo e finito");
-    }
-
-    if (!Object.values(PERIODO).includes(periodicidade)) {
-      throw new ValidationError(
-        `Periodicidade inválida. Opções: ${Object.values(PERIODO).join(", ")}`
-      );
-    }
-
-    if (!Validators.isValidDate(data_inicio)) {
-      throw new ValidationError("data_inicio deve ser uma data válida");
-    }
+    const data_inicio = new Date();
 
     try {
       return await TransactionHelper.executeTransaction(async (transaction) => {
         return await this.assinaturaRepository.createAssinatura(
           user_id,
-          valor,
-          periodicidade,
+          plano_id,
           data_inicio,
           transaction
         );
@@ -133,8 +125,7 @@ export class AssinaturaService {
     } catch (error) {
       Logger.error("Erro ao criar assinatura com transação", {
         user_id,
-        valor,
-        periodicidade,
+        plano_id,
         error: error instanceof Error ? error.message : String(error),
       });
       throw new InternalServerError("Não foi possível criar a assinatura");
@@ -190,19 +181,24 @@ export class AssinaturaService {
     }
   }
 
-  async updateAssinatura(id: string, valor?: number, periodicidade?: PERIODO, data_inicio?: Date) {
+  async updateAssinatura(id: string, plano_id?: string, data_inicio?: Date) {
     if (!Validators.isValidUUID(id)) {
       throw new ValidationError("ID é obrigatório e deve ser um UUID válido");
     }
 
-    if (valor !== undefined && !Validators.isValidMoney(valor)) {
-      throw new ValidationError("Valor deve ser um número positivo e finito");
+    if (plano_id && !Validators.isValidUUID(plano_id)) {
+      throw new ValidationError("plano_id deve ser um UUID válido");
     }
 
-    if (periodicidade && !Object.values(PERIODO).includes(periodicidade)) {
-      throw new ValidationError(
-        `Periodicidade inválida. Opções: ${Object.values(PERIODO).join(", ")}`
-      );
+    if (plano_id) {
+      try {
+        await this.planoRepository.getPlanoById(plano_id);
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          throw new ValidationError("Plano de assinatura não encontrado");
+        }
+        throw error;
+      }
     }
 
     if (data_inicio && !Validators.isValidDate(data_inicio)) {
@@ -210,17 +206,11 @@ export class AssinaturaService {
     }
 
     try {
-      return await this.assinaturaRepository.updateAssinatura(
-        id,
-        valor,
-        periodicidade,
-        data_inicio
-      );
+      return await this.assinaturaRepository.updateAssinatura(id, plano_id, data_inicio);
     } catch (error) {
       Logger.error("Erro ao atualizar assinatura", {
         id,
-        valor,
-        periodicidade,
+        plano_id,
         error: error instanceof Error ? error.message : String(error),
       });
       throw new InternalServerError("Não foi possível atualizar a assinatura");
@@ -279,17 +269,15 @@ export class AssinaturaService {
 
   /**
    * Cria assinatura e gera automaticamente todos os pagamentos pendentes
-   * baseados na periodicidade (MENSAL=12, TRIMESTRAL=4, SEMESTRAL=2, ANUAL=1)
+   * baseados na periodicidade do plano escolhido
    */
-  async createAssinaturaComPendencias(
-    user_id: string,
-    valor: number,
-    periodicidade: PERIODO,
-    data_inicio: Date,
-    dia_vencimento?: number
-  ) {
+  async createAssinaturaComPendencias(user_id: string, plano_id: string, dia_vencimento?: number) {
     if (!Validators.isValidUUID(user_id)) {
       throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
+    }
+
+    if (!Validators.isValidUUID(plano_id)) {
+      throw new ValidationError("plano_id é obrigatório e deve ser um UUID válido");
     }
 
     try {
@@ -301,6 +289,17 @@ export class AssinaturaService {
       throw error;
     }
 
+    // Buscar informações do plano
+    let plano;
+    try {
+      plano = await this.planoRepository.getPlanoById(plano_id);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new ValidationError("Plano de assinatura não encontrado");
+      }
+      throw error;
+    }
+
     const assinaturasAtivas = await this.assinaturaRepository.getAssinaturasAtivasByUserId(user_id);
     if (assinaturasAtivas.length > 0) {
       throw new ConflictError(
@@ -308,20 +307,7 @@ export class AssinaturaService {
       );
     }
 
-    if (!Validators.isValidMoney(valor)) {
-      throw new ValidationError("Valor deve ser um número positivo e finito");
-    }
-
-    if (!Object.values(PERIODO).includes(periodicidade)) {
-      throw new ValidationError(
-        `Periodicidade inválida. Opções: ${Object.values(PERIODO).join(", ")}`
-      );
-    }
-
-    if (!Validators.isValidDate(data_inicio)) {
-      throw new ValidationError("data_inicio deve ser uma data válida");
-    }
-
+    const data_inicio = new Date();
     const diaVencimento = dia_vencimento || 10;
 
     if (!Validators.isValidDay(diaVencimento) || diaVencimento > 31) {
@@ -333,15 +319,14 @@ export class AssinaturaService {
         // 1. Cria a assinatura
         const assinatura = await this.assinaturaRepository.createAssinatura(
           user_id,
-          valor,
-          periodicidade,
+          plano_id,
           data_inicio,
           transaction
         );
 
-        // 2. Calcula número de pendências baseado na periodicidade
-        const numeroPendencias = this.calcularNumeroPendencias(periodicidade);
-        const mesesEntrePagamentos = this.calcularMesesEntrePagamentos(periodicidade);
+        // 2. Calcula número de pendências baseado na periodicidade do plano
+        const numeroPendencias = this.calcularNumeroPendencias(plano.periodicidade);
+        const mesesEntrePagamentos = this.calcularMesesEntrePagamentos(plano.periodicidade);
 
         // 3. Gera todas as pendências
         const pendencias = [];
@@ -374,12 +359,16 @@ export class AssinaturaService {
           }
 
           // Define descrição baseada no período
-          const descricao = this.gerarDescricaoPendencia(periodicidade, dataVencimento, i + 1);
+          const descricao = this.gerarDescricaoPendencia(
+            plano.periodicidade,
+            dataVencimento,
+            i + 1
+          );
 
-          // Cria pendência associada à assinatura
+          // Cria pendência associada à assinatura usando o valor do plano
           await this.pagamentoPendenteRepository.createPagamentoPendente(
             user_id,
-            valor,
+            plano.valor,
             dataVencimento,
             descricao,
             STATUS.PENDENTE,
@@ -388,7 +377,7 @@ export class AssinaturaService {
           );
 
           pendencias.push({
-            valor,
+            valor: plano.valor,
             data_vencimento: dataVencimento,
             descricao,
           });
@@ -410,8 +399,7 @@ export class AssinaturaService {
       if (error instanceof ValidationError) throw error;
       Logger.error("Erro ao criar assinatura com pendências", {
         user_id,
-        valor,
-        periodicidade,
+        plano_id,
         error: error instanceof Error ? error.message : String(error),
       });
       throw new InternalServerError("Não foi possível criar a assinatura com pendências");

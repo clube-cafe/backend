@@ -12,10 +12,14 @@ export class AssinaturaController {
 
   async createAssinatura(req: Request, res: Response) {
     try {
-      const { user_id, valor, periodicidade, data_inicio } = req.body;
+      const { user_id, plano_id } = req.body;
 
       if (!Validators.isValidUUID(user_id)) {
         return res.status(400).json({ message: "user_id inválido" });
+      }
+
+      if (!Validators.isValidUUID(plano_id)) {
+        return res.status(400).json({ message: "plano_id inválido" });
       }
 
       if (req.user && req.user.id !== user_id) {
@@ -24,12 +28,7 @@ export class AssinaturaController {
           .json({ message: "Você não tem permissão para criar recursos para outros usuários" });
       }
 
-      const assinatura = await this.assinaturaService.createAssinatura(
-        user_id,
-        valor,
-        periodicidade,
-        new Date(data_inicio)
-      );
+      const assinatura = await this.assinaturaService.createAssinatura(user_id, plano_id);
       return res.status(201).json(assinatura);
     } catch (error: any) {
       Logger.error("Erro ao processar requisição", {
@@ -129,11 +128,10 @@ export class AssinaturaController {
           .json({ message: "Você não tem permissão para modificar este recurso" });
       }
 
-      const { valor, periodicidade, data_inicio } = req.body;
+      const { plano_id, data_inicio } = req.body;
       const updatedAssinatura = await this.assinaturaService.updateAssinatura(
         id,
-        valor,
-        periodicidade,
+        plano_id,
         data_inicio ? new Date(data_inicio) : undefined
       );
       return res.json(updatedAssinatura);
@@ -176,7 +174,7 @@ export class AssinaturaController {
 
   async createAssinaturaComPendencias(req: Request, res: Response) {
     try {
-      const { user_id, valor, periodicidade, data_inicio, dia_vencimento } = req.body;
+      const { user_id, plano_id, dia_vencimento } = req.body;
 
       if (!Validators.isValidUUID(user_id)) {
         return res.status(400).json({ message: "user_id inválido" });
@@ -190,9 +188,7 @@ export class AssinaturaController {
 
       const resultado = await this.assinaturaService.createAssinaturaComPendencias(
         user_id,
-        valor,
-        periodicidade,
-        new Date(data_inicio),
+        plano_id,
         dia_vencimento
       );
       return res.status(201).json({

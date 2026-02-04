@@ -25,12 +25,19 @@ describe("AssinaturaController", () => {
   it("deve criar uma assinatura e retornar 201", async () => {
     const controller = new AssinaturaController();
     const mockService = {
-      createAssinatura: jest.fn().mockResolvedValue({ id: "1", user_id: VALID_UUID, valor: 10 }),
+      createAssinatura: jest.fn().mockResolvedValue({
+        id: "1",
+        user_id: VALID_UUID,
+        plano_id: VALID_UUID_2,
+      }),
     } as any;
     (controller as any).assinaturaService = mockService;
 
     const req = makeReq({
-      body: { user_id: "123e4567-e89b-12d3-a456-426614174000", valor: 10, periodicidade: "MENSAL", data_inicio: "2024-01-01" },
+      body: {
+        user_id: "123e4567-e89b-12d3-a456-426614174000",
+        plano_id: VALID_UUID_2,
+      },
       user: { id: "123e4567-e89b-12d3-a456-426614174000", username: "test" },
     });
     const res = makeRes();
@@ -39,12 +46,14 @@ describe("AssinaturaController", () => {
 
     expect(mockService.createAssinatura).toHaveBeenCalledWith(
       "123e4567-e89b-12d3-a456-426614174000",
-      10,
-      "MENSAL",
-      new Date("2024-01-01")
+      VALID_UUID_2
     );
     expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({ id: "1", user_id: "123e4567-e89b-12d3-a456-426614174000", valor: 10 });
+    expect(res.json).toHaveBeenCalledWith({
+      id: "1",
+      user_id: "123e4567-e89b-12d3-a456-426614174000",
+      plano_id: VALID_UUID_2,
+    });
   });
 
   it("deve retornar 404 quando assinatura não encontrada", async () => {
@@ -169,19 +178,19 @@ describe("AssinaturaController", () => {
     const controller = new AssinaturaController();
     const mockService = {
       getAssinaturaById: jest.fn().mockResolvedValue({ id: VALID_UUID, user_id: VALID_UUID }),
-      updateAssinatura: jest.fn().mockResolvedValue({ id: VALID_UUID, valor: 20 }),
+      updateAssinatura: jest.fn().mockResolvedValue({ id: VALID_UUID, plano_id: VALID_UUID_2 }),
     } as any;
     (controller as any).assinaturaService = mockService;
 
     const req = makeReq({ 
       params: { id: VALID_UUID }, 
-      body: { valor: 20, periodicidade: "MENSAL" },
+      body: { plano_id: VALID_UUID_2 },
       user: { id: VALID_UUID, username: "test" },
     });
     const res = makeRes();
 
     await controller.updateAssinatura(req, res);
-    expect(res.json).toHaveBeenCalledWith({ id: VALID_UUID, valor: 20 });
+    expect(res.json).toHaveBeenCalledWith({ id: VALID_UUID, plano_id: VALID_UUID_2 });
   });
 
   it("deve retornar 404 ao atualizar assinatura não encontrada", async () => {
@@ -250,9 +259,7 @@ describe("AssinaturaController", () => {
     const req = makeReq({
       body: {
         user_id: VALID_UUID,
-        valor: 10,
-        periodicidade: "MENSAL",
-        data_inicio: "2024-01-01",
+        plano_id: VALID_UUID_2,
         dia_vencimento: 10,
       },
       user: { id: VALID_UUID, username: "test" },

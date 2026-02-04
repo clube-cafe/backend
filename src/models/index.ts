@@ -4,11 +4,13 @@ import "./Pagamento";
 import "./PagamentoPendente";
 import "./Historico";
 import "./TokenBlacklist";
+import "./PlanoAssinatura";
 import { User } from "./User";
 import { Assinatura } from "./Assinatura";
 import { Pagamento } from "./Pagamento";
 import { PagamentoPendente } from "./PagamentoPendente";
 import { Historico } from "./Historico";
+import { PlanoAssinatura } from "./PlanoAssinatura";
 
 // Definir associações
 User.hasMany(Assinatura, {
@@ -49,4 +51,13 @@ Assinatura.hasMany(PagamentoPendente, {
 });
 PagamentoPendente.belongsTo(Assinatura, {
   foreignKey: "assinatura_id",
+});
+
+// Plano de Assinatura -> Assinatura
+PlanoAssinatura.hasMany(Assinatura, {
+  foreignKey: "plano_id",
+  onDelete: "RESTRICT",
+});
+Assinatura.belongsTo(PlanoAssinatura, {
+  foreignKey: "plano_id",
 });

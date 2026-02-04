@@ -7,6 +7,8 @@ import pagamentosPendentesRouter from '../../src/routes/pagamentosPendentes';
 import { errorHandler } from '../../src/middleware/errorHandler';
 import testSequelize from '../setup';
 import '../../src/models';
+import { PlanoAssinatura } from '../../src/models/PlanoAssinatura';
+import { PERIODO } from '../../src/models/enums';
 
 describe('Delinquencia API Integration Tests', () => {
   const app = express();
@@ -22,6 +24,13 @@ describe('Delinquencia API Integration Tests', () => {
   beforeAll(async () => {
     await testSequelize.sync({ force: true });
 
+    const plano = await PlanoAssinatura.create({
+      nome: 'Plano Mensal Delinquencia',
+      descricao: 'Plano mensal para testes de delinquencia',
+      valor: 80.0,
+      periodicidade: PERIODO.MENSAL,
+    });
+
     const user = await request(app).post('/users').send({
       nome: 'Cliente Inadimplente',
       email: 'inadimplente@example.com',
@@ -31,9 +40,7 @@ describe('Delinquencia API Integration Tests', () => {
 
     const assinatura = await request(app).post('/assinaturas').send({
       user_id: userId,
-      valor: 80,
-      periodicidade: 'MENSAL',
-      data_inicio: '2026-01-01',
+      plano_id: plano.id,
     });
 
     await request(app)

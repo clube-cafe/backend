@@ -1,7 +1,8 @@
 import { Assinatura } from "../models/Assinatura";
+import { PlanoAssinatura } from "../models/PlanoAssinatura";
 import { PagamentoPendente } from "../models/PagamentoPendente";
 import { Pagamento } from "../models/Pagamento";
-import { STATUS, PERIODO } from "../models/enums";
+import { STATUS } from "../models/enums";
 import sequelize from "../config/database";
 import { Op } from "sequelize";
 import { Logger } from "../utils/Logger";
@@ -66,8 +67,12 @@ export class DashboardService {
         where: { status: STATUS.ATRASADO },
       }),
       Assinatura.findAll({
-        attributes: ["periodicidade", [sequelize.fn("COUNT", sequelize.col("id")), "quantidade"]],
-        group: ["periodicidade"],
+        attributes: [
+          [sequelize.col("PlanoAssinatura.periodicidade"), "periodicidade"],
+          [sequelize.fn("COUNT", sequelize.col("Assinatura.id")), "quantidade"],
+        ],
+        include: [{ model: PlanoAssinatura, attributes: [] }],
+        group: ["PlanoAssinatura.periodicidade"],
         raw: true,
       }),
     ]);
@@ -108,7 +113,13 @@ export class DashboardService {
     }
 
     const assinaturas = await Assinatura.findAll({
-      attributes: ["id", "valor", "periodicidade", "data_inicio"],
+      attributes: [
+        "id",
+        "data_inicio",
+        [sequelize.col("PlanoAssinatura.valor"), "valor"],
+        [sequelize.col("PlanoAssinatura.periodicidade"), "periodicidade"],
+      ],
+      include: [{ model: PlanoAssinatura, attributes: [] }],
       raw: true,
       limit: 10,
       order: [["createdAt", "DESC"]],

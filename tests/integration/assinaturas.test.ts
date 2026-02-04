@@ -5,6 +5,8 @@ import usersRouter from '../../src/routes/users';
 import { errorHandler } from '../../src/middleware/errorHandler';
 import testSequelize from '../setup';
 import '../../src/models';
+import { PlanoAssinatura } from '../../src/models/PlanoAssinatura';
+import { PERIODO } from '../../src/models/enums';
 
 const app = express();
 app.use(express.json());
@@ -14,9 +16,19 @@ app.use(errorHandler);
 
 describe('Assinaturas API Integration Tests', () => {
   let userId: string;
+  let planoId: string;
 
   beforeAll(async () => {
     await testSequelize.sync({ force: true });
+
+    const plano = await PlanoAssinatura.create({
+      nome: 'Plano Mensal Teste',
+      descricao: 'Plano mensal para testes',
+      valor: 50.0,
+      periodicidade: PERIODO.MENSAL,
+    });
+
+    planoId = plano.id;
 
     const userResponse = await request(app)
       .post('/users')
@@ -39,16 +51,13 @@ describe('Assinaturas API Integration Tests', () => {
         .post('/assinaturas')
         .send({
           user_id: userId,
-          valor: 50.00,
-          periodicidade: 'MENSAL',
-          data_inicio: '2026-01-24',
+          plano_id: planoId,
         });
 
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('id');
       expect(response.body.user_id).toBe(userId);
-      expect(response.body.valor).toBe(50);
-      expect(response.body.periodicidade).toBe('MENSAL');
+      expect(response.body.plano_id).toBe(planoId);
       expect(response.body.status).toBe('ATIVA');
     });
 
@@ -56,48 +65,28 @@ describe('Assinaturas API Integration Tests', () => {
       const response = await request(app)
         .post('/assinaturas')
         .send({
-          valor: 50.00,
-          periodicidade: 'MENSAL',
-          data_inicio: '2026-01-24',
+          plano_id: planoId,
         });
 
       expect(response.status).toBe(400);
     });
 
-    it('deve rejeitar valor inválido', async () => {
+    it('deve rejeitar plano_id inválido', async () => {
       const response = await request(app)
         .post('/assinaturas')
         .send({
           user_id: userId,
-          valor: -10,
-          periodicidade: 'MENSAL',
-          data_inicio: '2026-01-24',
+          plano_id: 'invalid-uuid',
         });
 
       expect(response.status).toBe(400);
     });
 
-    it('deve rejeitar periodicidade inválida', async () => {
+    it('deve rejeitar assinatura sem plano_id', async () => {
       const response = await request(app)
         .post('/assinaturas')
         .send({
           user_id: userId,
-          valor: 50.00,
-          periodicidade: 'INVALIDA',
-          data_inicio: '2026-01-24',
-        });
-
-      expect(response.status).toBe(400);
-    });
-
-    it('deve rejeitar data de início inválida', async () => {
-      const response = await request(app)
-        .post('/assinaturas')
-        .send({
-          user_id: userId,
-          valor: 50.00,
-          periodicidade: 'MENSAL',
-          data_inicio: 'data-invalida',
         });
 
       expect(response.status).toBe(400);
@@ -123,9 +112,7 @@ describe('Assinaturas API Integration Tests', () => {
           .post('/assinaturas')
           .send({
             user_id: userId,
-            valor: 100.00,
-            periodicidade: 'TRIMESTRAL',
-            data_inicio: '2026-01-24',
+            plano_id: planoId,
           });
         expect(createResponse.status).toBe(201);
         assinaturaId = createResponse.body.id;
@@ -154,9 +141,7 @@ describe('Assinaturas API Integration Tests', () => {
           .post('/assinaturas')
           .send({
             user_id: userId,
-            valor: 50.00,
-            periodicidade: 'MENSAL',
-            data_inicio: '2026-01-24',
+            plano_id: planoId,
           });
         expect(createResponse.status).toBe(201);
         assinaturaId = createResponse.body.id;
@@ -165,11 +150,11 @@ describe('Assinaturas API Integration Tests', () => {
       const response = await request(app)
         .put(`/assinaturas/${assinaturaId}`)
         .send({
-          valor: 75.00,
+          plano_id: planoId,
         });
 
       expect(response.status).toBe(200);
-      expect(response.body.valor).toBe(75);
+      expect(response.body.plano_id).toBe(planoId);
     });
   });
 
@@ -179,9 +164,7 @@ describe('Assinaturas API Integration Tests', () => {
         .post('/assinaturas')
         .send({
           user_id: userId,
-          valor: 50.00,
-          periodicidade: 'MENSAL',
-          data_inicio: '2026-01-24',
+          plano_id: planoId,
         });
 
       const assinaturaId = createResponse.body.id;

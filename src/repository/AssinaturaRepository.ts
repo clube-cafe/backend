@@ -1,5 +1,5 @@
 import { Assinatura } from "../models/Assinatura";
-import { PERIODO, STATUS_ASSINATURA } from "../models/enums";
+import { STATUS_ASSINATURA } from "../models/enums";
 import { Transaction } from "sequelize";
 import { Logger } from "../utils/Logger";
 import { NotFoundError } from "../utils/Errors";
@@ -7,16 +7,14 @@ import { NotFoundError } from "../utils/Errors";
 export class AssinaturaRepository {
   async createAssinatura(
     user_id: string,
-    valor: number,
-    periodicidade: PERIODO,
+    plano_id: string,
     data_inicio: Date,
     transaction?: Transaction
   ) {
     const assinatura = await Assinatura.create(
       {
         user_id,
-        valor,
-        periodicidade,
+        plano_id,
         data_inicio,
       },
       { transaction }
@@ -63,8 +61,7 @@ export class AssinaturaRepository {
 
   async updateAssinatura(
     id: string,
-    valor?: number,
-    periodicidade?: PERIODO,
+    plano_id?: string,
     data_inicio?: Date,
     transaction?: Transaction
   ) {
@@ -73,8 +70,7 @@ export class AssinaturaRepository {
       throw new NotFoundError("Assinatura não encontrada");
     }
 
-    if (valor !== undefined) assinatura.valor = valor;
-    if (periodicidade) assinatura.periodicidade = periodicidade;
+    if (plano_id !== undefined) assinatura.plano_id = plano_id;
     if (data_inicio) assinatura.data_inicio = data_inicio;
 
     await assinatura.save({ transaction });

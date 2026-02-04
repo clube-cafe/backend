@@ -52,21 +52,16 @@ export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { nome, email, password, tipo_user } = req.body;
+    const { nome, email, password } = req.body;
 
-    if (!nome || !email || !password || !tipo_user) {
+    if (!nome || !email || !password) {
       return res.status(400).json({
-        message: "Campos obrigatórios: nome, email, password, tipo_user",
+        message: "Campos obrigatórios: nome, email, password",
       });
     }
 
-    if (!Object.values(TIPO_USER).includes(tipo_user)) {
-      return res.status(400).json({
-        message: "tipo_user deve ser ADMIN ou ASSINANTE",
-      });
-    }
-
-    const result = await authService.register(nome, email, password, tipo_user);
+    // Sempre cria usuário como ASSINANTE
+    const result = await authService.register(nome, email, password, TIPO_USER.ASSINANTE);
 
     return res.status(201).json({
       message: "Usuário criado com sucesso",

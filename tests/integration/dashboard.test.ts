@@ -7,6 +7,8 @@ import pagamentosRouter from '../../src/routes/pagamentos';
 import { errorHandler } from '../../src/middleware/errorHandler';
 import testSequelize from '../setup';
 import '../../src/models';
+import { PlanoAssinatura } from '../../src/models/PlanoAssinatura';
+import { PERIODO } from '../../src/models/enums';
 
 const app = express();
 app.use(express.json());
@@ -19,6 +21,13 @@ app.use(errorHandler);
 describe('Dashboard API Integration Tests', () => {
   beforeAll(async () => {
     await testSequelize.sync({ force: true });
+
+    const plano = await PlanoAssinatura.create({
+      nome: 'Plano Mensal Dashboard',
+      descricao: 'Plano mensal para testes de dashboard',
+      valor: 50.0,
+      periodicidade: PERIODO.MENSAL,
+    });
 
     // Criar dados de teste
     const userResponse = await request(app)
@@ -35,9 +44,7 @@ describe('Dashboard API Integration Tests', () => {
       .post('/assinaturas')
       .send({
         user_id: userId,
-        valor: 50.00,
-        periodicidade: 'MENSAL',
-        data_inicio: '2026-01-24',
+        plano_id: plano.id,
       });
 
     await request(app)

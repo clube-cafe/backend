@@ -30,7 +30,7 @@ router.post("/", (req: Request, res: Response) => assinaturaController.createAss
  * /assinaturas/com-pendencias:
  *   post:
  *     summary: Criar assinatura e gerar pagamentos pendentes automaticamente
- *     description: Cria uma assinatura e gera automaticamente todos os pagamentos pendentes baseados na periodicidade (MENSAL=12, TRIMESTRAL=4, SEMESTRAL=2, ANUAL=1)
+ *     description: Cria uma assinatura e gera automaticamente todos os pagamentos pendentes baseados na periodicidade do plano escolhido
  *     tags:
  *       - Assinaturas
  *     requestBody:
@@ -41,23 +41,14 @@ router.post("/", (req: Request, res: Response) => assinaturaController.createAss
  *             type: object
  *             required:
  *               - user_id
- *               - valor
- *               - periodicidade
- *               - data_inicio
+ *               - plano_id
  *             properties:
  *               user_id:
  *                 type: string
  *                 format: uuid
- *               valor:
- *                 type: number
- *                 example: 50.00
- *               periodicidade:
+ *               plano_id:
  *                 type: string
- *                 enum: [MENSAL, TRIMESTRAL, SEMESTRAL, ANUAL]
- *               data_inicio:
- *                 type: string
- *                 format: date
- *                 example: "2026-01-01"
+ *                 format: uuid
  *               dia_vencimento:
  *                 type: number
  *                 description: Dia do mês para vencimento (1-28, padrão 10)
