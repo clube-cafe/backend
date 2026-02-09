@@ -10,7 +10,7 @@ const historicoController = new HistoricoController();
 
 /**
  * @swagger
- * /pagamentos/periodo:
+ * /pagamentos-periodo:
  *   get:
  *     summary: Listar pagamentos por período
  *     tags:
@@ -54,7 +54,7 @@ router.get("/pagamentos-periodo", (req: Request, res: Response) =>
 
 /**
  * @swagger
- * /pagamentos-pendentes/periodo:
+ * /pagamentos-pendentes-periodo:
  *   get:
  *     summary: Listar pagamentos pendentes por período
  *     tags:
@@ -98,7 +98,7 @@ router.get("/pagamentos-pendentes-periodo", (req: Request, res: Response) =>
 
 /**
  * @swagger
- * /historicos/periodo:
+ * /historicos-periodo:
  *   get:
  *     summary: Listar histórico por período
  *     tags:
@@ -140,40 +140,7 @@ router.get("/historicos-periodo", (req: Request, res: Response) =>
   historicoController.getHistoricosByPeriodo(req, res)
 );
 
-/**
- * @swagger
- * /historicos/total/entradas:
- *   get:
- *     summary: Total de entradas
- *     tags:
- *       - Histórico
- */
-router.get("/historicos-total/entradas", (req: Request, res: Response) =>
-  historicoController.getTotalEntradas(req, res)
-);
-
-/**
- * @swagger
- * /historicos/total/saidas:
- *   get:
- *     summary: Total de saídas
- *     tags:
- *       - Histórico
- */
-router.get("/historicos-total/saidas", (req: Request, res: Response) =>
-  historicoController.getTotalSaidas(req, res)
-);
-
-/**
- * @swagger
- * /historicos/saldo:
- *   get:
- *     summary: Saldo atual
- *     tags:
- *       - Histórico
- */
-router.get("/historicos-saldo", (req: Request, res: Response) =>
-  historicoController.getSaldoAtual(req, res)
-);
+// NOTA: As rotas /historicos/total/entradas, /historicos/total/saidas e /historicos/saldo
+// estão disponíveis em /historicos/... (historicos.ts)
 
 export default router;

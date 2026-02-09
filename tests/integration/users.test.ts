@@ -1,22 +1,43 @@
 import request from 'supertest';
 import express from 'express';
-import usersRouter from '../../src/routes/users';
 import authRouter from '../../src/routes/authRoutes';
 import { errorHandler } from '../../src/middleware/errorHandler';
 import testSequelize from '../setup';
 import '../../src/models';
+import { User } from '../../src/models/User';
+import { TIPO_USER } from '../../src/models/enums';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 
 const app = express();
 app.use(express.json());
 app.use('/auth', authRouter);
-app.use('/users', usersRouter);
 app.use(errorHandler);
 
 describe('Users API Integration Tests', () => {
   let testUserId: string;
+  let adminToken: string;
+  let adminId: string;
 
   beforeAll(async () => {
     await testSequelize.sync({ force: true });
+    
+    // Criar admin real no banco
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const admin = await User.create({
+      nome: 'Admin Test',
+      email: 'admin@test.com',
+      password: hashedPassword,
+      tipo_user: TIPO_USER.ADMIN
+    });
+    adminId = admin.id;
+    
+    // Gerar token com o ID real do admin
+    adminToken = jwt.sign(
+      { id: adminId, email: 'admin@test.com', tipo_user: 'ADMIN' },
+      process.env.JWT_SECRET || 'test-secret',
+      { expiresIn: '1h' }
+    );
   });
 
   afterAll(async () => {
@@ -101,9 +122,11 @@ describe('Users API Integration Tests', () => {
     });
   });
 
-  describe('GET /users', () => {
+  describe('GET /auth/users', () => {
     it('deve listar todos os usuários', async () => {
-      const response = await request(app).get('/users');
+      const response = await request(app)
+        .get('/auth/users')
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);
@@ -111,28 +134,34 @@ describe('Users API Integration Tests', () => {
     });
   });
 
-  describe('GET /users/:id', () => {
+  describe('GET /auth/users/:id', () => {
     it('deve retornar um usuário específico', async () => {
-      const response = await request(app).get(`/users/${testUserId}`);
+      const response = await request(app)
+        .get(`/auth/users/${testUserId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.id).toBe(testUserId);
     });
 
     it('deve retornar 404 para usuário não encontrado', async () => {
-      const response = await request(app).get('/users/123e4567-e89b-12d3-a456-426614174000');
+      const response = await request(app)
+        .get('/auth/users/123e4567-e89b-12d3-a456-426614174000')
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect([404, 500]).toContain(response.status);
     });
 
     it('deve retornar 400 para UUID inválido', async () => {
-      const response = await request(app).get('/users/invalid-uuid');
+      const response = await request(app)
+        .get('/auth/users/invalid-uuid')
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect([400, 500]).toContain(response.status);
     });
   });
 
-  describe('PUT /users/:id', () => {
+  describe('PUT /auth/users/:id', () => {
     it('deve atualizar dados do usuário', async () => {
       const createResponse = await request(app)
         .post('/auth/register')
@@ -145,7 +174,8 @@ describe('Users API Integration Tests', () => {
       const userId = createResponse.body.user.id;
 
       const response = await request(app)
-        .put(`/users/${userId}`)
+        .put(`/auth/users/${userId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .send({
           nome: 'Usuario Atualizado',
         });
@@ -155,7 +185,7 @@ describe('Users API Integration Tests', () => {
     });
   });
 
-  describe('DELETE /users/:id', () => {
+  describe('DELETE /auth/users/:id', () => {
     it('deve fazer soft delete de usuário', async () => {
       const createResponse = await request(app)
         .post('/auth/register')
@@ -167,11 +197,15 @@ describe('Users API Integration Tests', () => {
 
       const userId = createResponse.body.user.id;
 
-      const response = await request(app).delete(`/users/${userId}`);
+      const response = await request(app)
+        .delete(`/auth/users/${userId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect([204, 200]).toContain(response.status);
 
-      const getResponse = await request(app).get(`/users/${userId}`);
+      const getResponse = await request(app)
+        .get(`/auth/users/${userId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
       expect([404, 500]).toContain(getResponse.status);
     });
   });

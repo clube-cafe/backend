@@ -1,5 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import swaggerUi from "swagger-ui-express";
 import sequelize from "./config/database";
 import { env } from "./config/env";
@@ -12,6 +14,21 @@ import "./models";
 
 const app = express();
 const PORT = env.PORT;
+
+// Segurança: Headers HTTP
+app.use(helmet());
+
+// Rate limiting: 100 requisições por 15 minutos por IP (desativado em testes)
+if (env.NODE_ENV !== "test") {
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { error: "Muitas requisições, tente novamente mais tarde" },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use(limiter);
+}
 
 app.use(
   cors({

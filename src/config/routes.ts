@@ -15,7 +15,9 @@ import { authenticate } from "../middlewares/authMiddleware";
 
 export const setupRoutes = (app: Express) => {
   app.use("/auth", authRoutes);
-  app.use("/", queriesRouter);
+
+  // Queries por período (protegidas)
+  app.use("/", authenticate, queriesRouter);
 
   // Rotas protegidas
   app.use("/users", authenticate, userRelatedRouter);

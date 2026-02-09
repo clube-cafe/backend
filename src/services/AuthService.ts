@@ -113,7 +113,8 @@ export class AuthService {
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
-    const user = await userRepo.getUserById(userId);
+    // Usar método com senha para verificar a senha atual
+    const user = await userRepo.getUserByIdWithPassword(userId);
 
     if (!user.password) {
       throw new ValidationError("Usuário não possui senha cadastrada");

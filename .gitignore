@@ -4,3 +4,7 @@ dist/
 *.log
 .DS_Store
 coverage
+
+# Arquivos JS compilados nos testes (usar apenas .ts)
+tests/**/*.js
+!tests/setup.js

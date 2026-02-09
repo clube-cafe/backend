@@ -57,7 +57,9 @@ export class UserRepository {
       throw new ValidationError("ID inválido");
     }
 
-    const user = await User.findByPk(id);
+    const user = await User.findByPk(id, {
+      attributes: { exclude: ["password", "deletedAt"] },
+    });
     if (!user) {
       throw new NotFoundError("Usuário");
     }
@@ -75,8 +77,23 @@ export class UserRepository {
     });
   }
 
+  // Método interno para autenticação - inclui senha
+  async getUserByIdWithPassword(id: string) {
+    if (!Validators.isValidUUID(id)) {
+      throw new ValidationError("ID inválido");
+    }
+
+    const user = await User.findByPk(id);
+    if (!user) {
+      throw new NotFoundError("Usuário");
+    }
+
+    return user;
+  }
+
   async updateUser(id: string, nome?: string, email?: string, tipo_user?: TIPO_USER) {
-    const user = await this.getUserById(id);
+    // Precisa do modelo completo para poder fazer save()
+    const user = await this.getUserByIdWithPassword(id);
 
     if (nome && !Validators.isValidString(nome, 3)) {
       throw new ValidationError("Nome deve ter pelo menos 3 caracteres");
@@ -106,7 +123,7 @@ export class UserRepository {
   }
 
   async updatePassword(id: string, newPassword: string) {
-    const user = await this.getUserById(id);
+    const user = await this.getUserByIdWithPassword(id);
 
     if (!newPassword || newPassword.length < 6) {
       throw new ValidationError("A senha deve ter no mínimo 6 caracteres");
@@ -120,7 +137,8 @@ export class UserRepository {
   }
 
   async deleteUser(id: string) {
-    const user = await this.getUserById(id);
+    // Precisa do modelo completo para poder fazer destroy()
+    const user = await this.getUserByIdWithPassword(id);
     await user.destroy();
     return true;
   }

@@ -1,6 +1,5 @@
 import { Router, Request, Response } from "express";
 import { AssinaturaController } from "../controllers/AssinaturaController";
-import { authenticate } from "../middlewares/authMiddleware";
 import { isAdmin } from "../middlewares/roleMiddleware";
 
 const router = Router();
@@ -49,7 +48,7 @@ const assinaturaController = new AssinaturaController();
  *             schema:
  *               $ref: '#/components/schemas/UnauthorizedError'
  */
-router.post("/", authenticate, (req: Request, res: Response) =>
+router.post("/", (req: Request, res: Response) =>
   assinaturaController.createAssinatura(req, res)
 );
 
@@ -92,7 +91,7 @@ router.post("/", authenticate, (req: Request, res: Response) =>
  *       401:
  *         description: Não autorizado
  */
-router.post("/com-pendencias", authenticate, (req: Request, res: Response) =>
+router.post("/com-pendencias", (req: Request, res: Response) =>
   assinaturaController.createAssinaturaComPendencias(req, res)
 );
 
@@ -127,7 +126,7 @@ router.post("/com-pendencias", authenticate, (req: Request, res: Response) =>
  *             schema:
  *               $ref: '#/components/schemas/ForbiddenError'
  */
-router.get("/", authenticate, isAdmin, (req: Request, res: Response) =>
+router.get("/", isAdmin, (req: Request, res: Response) =>
   assinaturaController.getAllAssinaturas(req, res)
 );
 
@@ -164,7 +163,7 @@ router.get("/", authenticate, isAdmin, (req: Request, res: Response) =>
  *             schema:
  *               $ref: '#/components/schemas/NotFoundError'
  */
-router.get("/:id", authenticate, (req: Request, res: Response) =>
+router.get("/:id", (req: Request, res: Response) =>
   assinaturaController.getAssinaturaById(req, res)
 );
 
@@ -205,7 +204,7 @@ router.get("/:id", authenticate, (req: Request, res: Response) =>
  *       404:
  *         description: Assinatura não encontrada
  */
-router.put("/:id", authenticate, (req: Request, res: Response) =>
+router.put("/:id", (req: Request, res: Response) =>
   assinaturaController.updateAssinatura(req, res)
 );
 
@@ -265,7 +264,7 @@ router.put("/:id", authenticate, (req: Request, res: Response) =>
  *             schema:
  *               $ref: '#/components/schemas/NotFoundError'
  */
-router.post("/:assinatura_id/cancelar", authenticate, isAdmin, (req: Request, res: Response) =>
+router.post("/:assinatura_id/cancelar", isAdmin, (req: Request, res: Response) =>
   assinaturaController.cancelarAssinatura(req, res)
 );
 

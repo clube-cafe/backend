@@ -3,6 +3,7 @@ import express from 'express';
 import assinaturasRouter from '../../src/routes/assinaturas';
 import authRouter from '../../src/routes/authRoutes';
 import { errorHandler } from '../../src/middleware/errorHandler';
+import { authenticate } from '../../src/middlewares/authMiddleware';
 import testSequelize from '../setup';
 import '../../src/models';
 import { PlanoAssinatura } from '../../src/models/PlanoAssinatura';
@@ -13,7 +14,7 @@ import bcrypt from 'bcryptjs';
 const app = express();
 app.use(express.json());
 app.use('/auth', authRouter);
-app.use('/assinaturas', assinaturasRouter);
+app.use('/assinaturas', authenticate, assinaturasRouter);
 app.use(errorHandler);
 
 type AssinaturaResponse = { 
