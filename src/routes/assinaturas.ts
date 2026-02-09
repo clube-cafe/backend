@@ -48,9 +48,7 @@ const assinaturaController = new AssinaturaController();
  *             schema:
  *               $ref: '#/components/schemas/UnauthorizedError'
  */
-router.post("/", (req: Request, res: Response) =>
-  assinaturaController.createAssinatura(req, res)
-);
+router.post("/", (req: Request, res: Response) => assinaturaController.createAssinatura(req, res));
 
 /**
  * @swagger
