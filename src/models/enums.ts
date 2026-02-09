@@ -18,6 +18,7 @@ export enum STATUS {
 }
 
 export enum STATUS_ASSINATURA {
+  PENDENTE = "PENDENTE",
   ATIVA = "ATIVA",
   CANCELADA = "CANCELADA",
 }

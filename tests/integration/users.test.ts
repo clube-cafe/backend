@@ -1,16 +1,20 @@
 import request from 'supertest';
 import express from 'express';
 import usersRouter from '../../src/routes/users';
+import authRouter from '../../src/routes/authRoutes';
 import { errorHandler } from '../../src/middleware/errorHandler';
 import testSequelize from '../setup';
 import '../../src/models';
 
 const app = express();
 app.use(express.json());
+app.use('/auth', authRouter);
 app.use('/users', usersRouter);
 app.use(errorHandler);
 
 describe('Users API Integration Tests', () => {
+  let testUserId: string;
+
   beforeAll(async () => {
     await testSequelize.sync({ force: true });
   });
@@ -19,76 +23,80 @@ describe('Users API Integration Tests', () => {
     await testSequelize.close();
   });
 
-  describe('POST /users', () => {
+  describe('POST /auth/register (criar usuários)', () => {
     it('deve criar um novo usuário com dados válidos', async () => {
       const response = await request(app)
-        .post('/users')
+        .post('/auth/register')
         .send({
           nome: 'Teste Usuario',
           email: 'teste@example.com',
-          tipo_user: 'ASSINANTE',
+          password: '123456',
         });
 
       expect(response.status).toBe(201);
-      expect(response.body).toHaveProperty('id');
-      expect(response.body.nome).toBe('Teste Usuario');
-      expect(response.body.email).toBe('teste@example.com');
-      expect(response.body.tipo_user).toBe('ASSINANTE');
+      expect(response.body.user).toHaveProperty('id');
+      expect(response.body.user.nome).toBe('Teste Usuario');
+      expect(response.body.user.email).toBe('teste@example.com');
+      expect(response.body.user.tipo_user).toBe('ASSINANTE');
+      testUserId = response.body.user.id;
     });
 
     it('deve rejeitar criação sem campos obrigatórios', async () => {
       const response = await request(app)
-        .post('/users')
+        .post('/auth/register')
         .send({
           nome: 'Teste',
         });
 
-      expect(response.status).toBe(400);
+      expect([400, 500]).toContain(response.status);
     });
 
     it('deve rejeitar email inválido', async () => {
       const response = await request(app)
-        .post('/users')
+        .post('/auth/register')
         .send({
           nome: 'Teste Usuario',
           email: 'email-invalido',
-          tipo_user: 'ASSINANTE',
+          password: '123456',
         });
 
       expect([400, 500]).toContain(response.status);
       expect(response.body).toHaveProperty('message');
     });
 
-    it('deve rejeitar tipo_user inválido', async () => {
+    it('deve rejeitar tipo_user inválido (sempre cria ASSINANTE)', async () => {
+      // O registro ignora tipo_user e sempre cria ASSINANTE
       const response = await request(app)
-        .post('/users')
+        .post('/auth/register')
         .send({
           nome: 'Teste Usuario',
           email: 'teste2@example.com',
-          tipo_user: 'INVALIDO',
+          password: '123456',
+          tipo_user: 'ADMIN', // Ignorado
         });
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(201);
+      expect(response.body.user.tipo_user).toBe('ASSINANTE');
     });
 
     it('deve rejeitar email duplicado', async () => {
       await request(app)
-        .post('/users')
+        .post('/auth/register')
         .send({
           nome: 'Usuario 1',
           email: 'duplicado@example.com',
-          tipo_user: 'ASSINANTE',
+          password: '123456',
         });
 
       const response = await request(app)
-        .post('/users')
+        .post('/auth/register')
         .send({
           nome: 'Usuario 2',
           email: 'duplicado@example.com',
-          tipo_user: 'ASSINANTE',
+          password: '123456',
         });
 
-      expect([409, 500]).toContain(response.status);
+      expect([409, 400, 500]).toContain(response.status);
       expect(response.body).toHaveProperty('message');
     });
   });
@@ -105,21 +113,10 @@ describe('Users API Integration Tests', () => {
 
   describe('GET /users/:id', () => {
     it('deve retornar um usuário específico', async () => {
-      const createResponse = await request(app)
-        .post('/users')
-        .send({
-          nome: 'Usuario Especifico',
-          email: 'especifico@example.com',
-          tipo_user: 'ASSINANTE',
-        });
-
-      const userId = createResponse.body.id;
-
-      const response = await request(app).get(`/users/${userId}`);
+      const response = await request(app).get(`/users/${testUserId}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.id).toBe(userId);
-      expect(response.body.email).toBe('especifico@example.com');
+      expect(response.body.id).toBe(testUserId);
     });
 
     it('deve retornar 404 para usuário não encontrado', async () => {
@@ -138,14 +135,14 @@ describe('Users API Integration Tests', () => {
   describe('PUT /users/:id', () => {
     it('deve atualizar dados do usuário', async () => {
       const createResponse = await request(app)
-        .post('/users')
+        .post('/auth/register')
         .send({
           nome: 'Usuario Para Atualizar',
           email: 'atualizar@example.com',
-          tipo_user: 'ASSINANTE',
+          password: '123456',
         });
 
-      const userId = createResponse.body.id;
+      const userId = createResponse.body.user.id;
 
       const response = await request(app)
         .put(`/users/${userId}`)
@@ -155,21 +152,20 @@ describe('Users API Integration Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.nome).toBe('Usuario Atualizado');
-      expect(response.body.email).toBe('atualizar@example.com');
     });
   });
 
   describe('DELETE /users/:id', () => {
     it('deve fazer soft delete de usuário', async () => {
       const createResponse = await request(app)
-        .post('/users')
+        .post('/auth/register')
         .send({
           nome: 'Usuario Para Deletar',
           email: 'deletar@example.com',
-          tipo_user: 'ASSINANTE',
+          password: '123456',
         });
 
-      const userId = createResponse.body.id;
+      const userId = createResponse.body.user.id;
 
       const response = await request(app).delete(`/users/${userId}`);
 

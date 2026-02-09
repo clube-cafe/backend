@@ -1,7 +1,7 @@
 import request from 'supertest';
 import express from 'express';
 import pagamentosPendentesRouter from '../../src/routes/pagamentosPendentes';
-import usersRouter from '../../src/routes/users';
+import authRouter from '../../src/routes/authRoutes';
 import { errorHandler } from '../../src/middleware/errorHandler';
 import testSequelize from '../setup';
 import '../../src/models';
@@ -9,21 +9,23 @@ import '../../src/models';
 describe('Pagamentos Pendentes API Integration Tests', () => {
   const app = express();
   app.use(express.json());
-  app.use('/users', usersRouter);
+  app.use('/auth', authRouter);
   app.use('/pagamentos-pendentes', pagamentosPendentesRouter);
   app.use(errorHandler);
 
   let userId: string;
   let pendenteId: string;
+  let authToken: string;
 
   beforeAll(async () => {
     await testSequelize.sync({ force: true });
-    const user = await request(app).post('/users').send({
+    const user = await request(app).post('/auth/register').send({
       nome: 'Cliente Pendencia',
       email: 'pendente@example.com',
-      tipo_user: 'ASSINANTE',
+      password: '123456',
     });
-    userId = user.body.id;
+    userId = user.body.user.id;
+    authToken = user.body.token;
   });
 
   afterAll(async () => {
@@ -34,6 +36,7 @@ describe('Pagamentos Pendentes API Integration Tests', () => {
     it('deve criar um pagamento pendente', async () => {
       const res = await request(app)
         .post('/pagamentos-pendentes')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
           user_id: userId,
           valor: 120.5,
@@ -49,7 +52,9 @@ describe('Pagamentos Pendentes API Integration Tests', () => {
 
   describe('GET /pagamentos-pendentes', () => {
     it('deve listar pendências', async () => {
-      const res = await request(app).get('/pagamentos-pendentes');
+      const res = await request(app)
+        .get('/pagamentos-pendentes')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
     });
@@ -57,7 +62,9 @@ describe('Pagamentos Pendentes API Integration Tests', () => {
 
   describe('GET /pagamentos-pendentes/:id', () => {
     it('deve obter pendência por id', async () => {
-      const res = await request(app).get(`/pagamentos-pendentes/${pendenteId}`);
+      const res = await request(app)
+        .get(`/pagamentos-pendentes/${pendenteId}`)
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
       expect(res.body.id).toBe(pendenteId);
     });
@@ -65,7 +72,9 @@ describe('Pagamentos Pendentes API Integration Tests', () => {
 
   describe('GET /pagamentos-pendentes/status/:status', () => {
     it('deve filtrar por status', async () => {
-      const res = await request(app).get('/pagamentos-pendentes/status/PENDENTE');
+      const res = await request(app)
+        .get('/pagamentos-pendentes/status/PENDENTE')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
     });
@@ -75,6 +84,7 @@ describe('Pagamentos Pendentes API Integration Tests', () => {
     it('deve atualizar status', async () => {
       const res = await request(app)
         .patch(`/pagamentos-pendentes/${pendenteId}/status`)
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ status: 'ATRASADO' });
       expect([200, 204]).toContain(res.status);
     });
@@ -82,7 +92,9 @@ describe('Pagamentos Pendentes API Integration Tests', () => {
 
   describe('DELETE /pagamentos-pendentes/:id', () => {
     it('deve remover pendência', async () => {
-      const res = await request(app).delete(`/pagamentos-pendentes/${pendenteId}`);
+      const res = await request(app)
+        .delete(`/pagamentos-pendentes/${pendenteId}`)
+        .set('Authorization', `Bearer ${authToken}`);
       expect([200, 204, 404]).toContain(res.status);
     });
   });

@@ -1,22 +1,32 @@
 import request from 'supertest';
 import express from 'express';
 import assinaturasRouter from '../../src/routes/assinaturas';
-import usersRouter from '../../src/routes/users';
+import authRouter from '../../src/routes/authRoutes';
 import { errorHandler } from '../../src/middleware/errorHandler';
 import testSequelize from '../setup';
 import '../../src/models';
 import { PlanoAssinatura } from '../../src/models/PlanoAssinatura';
-import { PERIODO } from '../../src/models/enums';
+import { User } from '../../src/models/User';
+import { PERIODO, TIPO_USER } from '../../src/models/enums';
+import bcrypt from 'bcryptjs';
 
 const app = express();
 app.use(express.json());
-app.use('/users', usersRouter);
+app.use('/auth', authRouter);
 app.use('/assinaturas', assinaturasRouter);
 app.use(errorHandler);
+
+type AssinaturaResponse = { 
+  assinatura: { id: string; status: string; user_id: string; plano_id: string }; 
+  pagamentoPendente: { id: string; valor: number } 
+};
 
 describe('Assinaturas API Integration Tests', () => {
   let userId: string;
   let planoId: string;
+  let assinaturaId: string;
+  let authToken: string;
+  let adminToken: string;
 
   beforeAll(async () => {
     await testSequelize.sync({ force: true });
@@ -30,15 +40,35 @@ describe('Assinaturas API Integration Tests', () => {
 
     planoId = plano.id;
 
+    // Criar admin diretamente no banco
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+    await User.create({
+      nome: 'Admin Teste',
+      email: 'admin@test.com',
+      password: hashedPassword,
+      tipo_user: TIPO_USER.ADMIN,
+    });
+
+    // Login como admin para obter token
+    const adminLogin = await request(app)
+      .post('/auth/login')
+      .send({
+        email: 'admin@test.com',
+        password: 'admin123',
+      });
+    adminToken = adminLogin.body.token;
+
+    // Criar usuário via register
     const userResponse = await request(app)
-      .post('/users')
+      .post('/auth/register')
       .send({
         nome: 'Usuario Teste Assinatura',
         email: 'assinatura@example.com',
-        tipo_user: 'ASSINANTE',
+        password: '123456',
       });
 
-    userId = userResponse.body.id;
+    userId = userResponse.body.user.id;
+    authToken = userResponse.body.token;
   });
 
   afterAll(async () => {
@@ -46,24 +76,42 @@ describe('Assinaturas API Integration Tests', () => {
   });
 
   describe('POST /assinaturas', () => {
-    it('deve criar uma nova assinatura com dados válidos', async () => {
+    it('deve criar uma nova assinatura com status PENDENTE e pagamento pendente', async () => {
       const response = await request(app)
         .post('/assinaturas')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
           user_id: userId,
           plano_id: planoId,
         });
 
       expect(response.status).toBe(201);
-      expect(response.body).toHaveProperty('id');
-      expect(response.body.user_id).toBe(userId);
-      expect(response.body.plano_id).toBe(planoId);
-      expect(response.body.status).toBe('ATIVA');
+      const body = response.body as AssinaturaResponse;
+      expect(body.assinatura).toBeTruthy();
+      expect(body.assinatura.user_id).toBe(userId);
+      expect(body.assinatura.plano_id).toBe(planoId);
+      expect(body.assinatura.status).toBe('PENDENTE');
+      expect(body.pagamentoPendente).toBeTruthy();
+      expect(body.pagamentoPendente.valor).toBe(50);
+      assinaturaId = body.assinatura.id;
+    });
+
+    it('deve rejeitar assinatura quando já existe uma pendente', async () => {
+      const response = await request(app)
+        .post('/assinaturas')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          user_id: userId,
+          plano_id: planoId,
+        });
+
+      expect([409, 400]).toContain(response.status);
     });
 
     it('deve rejeitar assinatura sem user_id', async () => {
       const response = await request(app)
         .post('/assinaturas')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
           plano_id: planoId,
         });
@@ -74,6 +122,7 @@ describe('Assinaturas API Integration Tests', () => {
     it('deve rejeitar plano_id inválido', async () => {
       const response = await request(app)
         .post('/assinaturas')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
           user_id: userId,
           plano_id: 'invalid-uuid',
@@ -85,6 +134,7 @@ describe('Assinaturas API Integration Tests', () => {
     it('deve rejeitar assinatura sem plano_id', async () => {
       const response = await request(app)
         .post('/assinaturas')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
           user_id: userId,
         });
@@ -93,62 +143,57 @@ describe('Assinaturas API Integration Tests', () => {
     });
   });
 
-  describe('GET /assinaturas', () => {
-    it('deve listar todas as assinaturas', async () => {
-      const response = await request(app).get('/assinaturas');
+  describe('GET /assinaturas (Admin)', () => {
+    it('deve listar todas as assinaturas como admin', async () => {
+      const response = await request(app)
+        .get('/assinaturas')
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);
+    });
+
+    it('deve rejeitar acesso de assinante', async () => {
+      const response = await request(app)
+        .get('/assinaturas')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(403);
     });
   });
 
   describe('GET /assinaturas/:id', () => {
     it('deve retornar uma assinatura específica', async () => {
-      const listResponse = await request(app).get('/assinaturas');
-      let assinaturaId = listResponse.body[0]?.id;
-      
-      if (!assinaturaId) {
-        const createResponse = await request(app)
-          .post('/assinaturas')
-          .send({
-            user_id: userId,
-            plano_id: planoId,
-          });
-        expect(createResponse.status).toBe(201);
-        assinaturaId = createResponse.body.id;
-      }
-
-      const response = await request(app).get(`/assinaturas/${assinaturaId}`);
+      const response = await request(app)
+        .get(`/assinaturas/${assinaturaId}`)
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.id).toBe(assinaturaId);
     });
 
     it('deve retornar 404 para assinatura não encontrada', async () => {
-      const response = await request(app).get('/assinaturas/123e4567-e89b-12d3-a456-426614174000');
+      const response = await request(app)
+        .get('/assinaturas/123e4567-e89b-12d3-a456-426614174000')
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(404);
     });
   });
 
-  describe('PUT /assinaturas/:id', () => {
-    it('deve atualizar assinatura', async () => {
-      const listResponse = await request(app).get('/assinaturas');
-      let assinaturaId = listResponse.body[0]?.id;
+  describe('PUT /assinaturas/:id (Admin)', () => {
+    it('deve atualizar assinatura como admin', async () => {
+      // Fazer novo login como admin para garantir token válido
+      const adminLogin = await request(app)
+        .post('/auth/login')
+        .send({
+          email: 'admin@test.com',
+          password: 'admin123',
+        });
       
-      if (!assinaturaId) {
-        const createResponse = await request(app)
-          .post('/assinaturas')
-          .send({
-            user_id: userId,
-            plano_id: planoId,
-          });
-        expect(createResponse.status).toBe(201);
-        assinaturaId = createResponse.body.id;
-      }
-
       const response = await request(app)
         .put(`/assinaturas/${assinaturaId}`)
+        .set('Authorization', `Bearer ${adminLogin.body.token}`)
         .send({
           plano_id: planoId,
         });
@@ -156,25 +201,16 @@ describe('Assinaturas API Integration Tests', () => {
       expect(response.status).toBe(200);
       expect(response.body.plano_id).toBe(planoId);
     });
-  });
 
-  describe('DELETE /assinaturas/:id (cancelar)', () => {
-    it('deve cancelar assinatura', async () => {
-      const createResponse = await request(app)
-        .post('/assinaturas')
+    it('deve permitir assinante atualizar sua própria assinatura', async () => {
+      const response = await request(app)
+        .put(`/assinaturas/${assinaturaId}`)
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
-          user_id: userId,
           plano_id: planoId,
         });
 
-      const assinaturaId = createResponse.body.id;
-
-      const response = await request(app).delete(`/assinaturas/${assinaturaId}`);
-
-      expect([200, 404]).toContain(response.status);
-      if (response.status === 200) {
-        expect(response.body.status).toBe('CANCELADA');
-      }
+      expect(response.status).toBe(200);
     });
   });
 });

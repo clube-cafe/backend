@@ -254,37 +254,28 @@ export class PagamentoController {
 
   async registrarPagamentoCompleto(req: Request, res: Response) {
     try {
-      const { user_id, valor, data_pagamento, forma_pagamento, observacao, pagamento_pendente_id } =
-        req.body;
+      const { pagamento_pendente_id, forma_pagamento, observacao } = req.body;
 
-      if (!Validators.isValidUUID(user_id)) {
-        return res.status(400).json({ message: "user_id inválido" });
-      }
-
-      if (req.user && req.user.id !== user_id) {
-        return res
-          .status(403)
-          .json({ message: "Você não tem permissão para criar recursos para outros usuários" });
+      if (!Validators.isValidUUID(pagamento_pendente_id)) {
+        return res.status(400).json({ message: "pagamento_pendente_id inválido" });
       }
 
       const resultado = await this.pagamentoService.registrarPagamentoCompleto(
-        user_id,
-        valor,
-        new Date(data_pagamento),
+        pagamento_pendente_id,
         forma_pagamento,
-        observacao,
-        pagamento_pendente_id
+        observacao
       );
       return res.status(201).json({
-        message: "Pagamento registrado e histórico criado automaticamente",
-        resultado,
+        message: "Pagamento registrado com sucesso",
+        ...resultado,
       });
     } catch (error: any) {
       Logger.error("Erro ao processar requisição", {
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return res.status(400).json({ message: error.message });
+      const statusCode = error.message.includes("não encontrado") ? 404 : 400;
+      return res.status(statusCode).json({ message: error.message });
     }
   }
 }

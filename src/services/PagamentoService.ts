@@ -2,7 +2,8 @@ import { PagamentoRepository } from "../repository/PagamentoRepository";
 import { PagamentoPendenteRepository } from "../repository/PagamentoPendenteRepository";
 import { HistoricoRepository } from "../repository/HistoricoRepository";
 import { UserRepository } from "../repository/UserRepository";
-import { PAGAMENTO_ENUM, STATUS, TIPO } from "../models/enums";
+import { AssinaturaRepository } from "../repository/AssinaturaRepository";
+import { PAGAMENTO_ENUM, STATUS, STATUS_ASSINATURA, TIPO } from "../models/enums";
 import { TransactionHelper } from "../config/TransactionHelper";
 import { Validators } from "../utils/Validators";
 import { Logger } from "../utils/Logger";
@@ -13,12 +14,14 @@ export class PagamentoService {
   private pagamentoPendenteRepository: PagamentoPendenteRepository;
   private historicoRepository: HistoricoRepository;
   private userRepository: UserRepository;
+  private assinaturaRepository: AssinaturaRepository;
 
   constructor() {
     this.pagamentoRepository = new PagamentoRepository();
     this.pagamentoPendenteRepository = new PagamentoPendenteRepository();
     this.historicoRepository = new HistoricoRepository();
     this.userRepository = new UserRepository();
+    this.assinaturaRepository = new AssinaturaRepository();
   }
 
   async createPagamento(
@@ -370,16 +373,33 @@ export class PagamentoService {
   }
 
   async registrarPagamentoCompleto(
-    user_id: string,
-    valor: number,
-    data_pagamento: Date,
+    pagamento_pendente_id: string,
     forma_pagamento: PAGAMENTO_ENUM,
-    observacao?: string,
-    pagamento_pendente_id?: string
+    observacao?: string
   ) {
-    if (!Validators.isValidUUID(user_id)) {
-      throw new ValidationError("user_id é obrigatório e deve ser um UUID válido");
+    if (!Validators.isValidUUID(pagamento_pendente_id)) {
+      throw new ValidationError("pagamento_pendente_id é obrigatório e deve ser um UUID válido");
     }
+
+    // Buscar o pagamento pendente
+    const pendente =
+      await this.pagamentoPendenteRepository.getPagamentoPendenteById(pagamento_pendente_id);
+    if (!pendente) {
+      throw new NotFoundError("Pagamento pendente não encontrado");
+    }
+
+    if (pendente.status === STATUS.PAGO) {
+      throw new ValidationError("Este pagamento já foi realizado");
+    }
+
+    if (pendente.status === STATUS.CANCELADO) {
+      throw new ValidationError("Este pagamento foi cancelado");
+    }
+
+    const user_id = pendente.user_id;
+    const valor = pendente.valor;
+    const assinatura_id = pendente.assinatura_id;
+    const data_pagamento = new Date(); // Data gerenciada pelo backend
 
     try {
       await this.userRepository.getUserById(user_id);
@@ -390,28 +410,10 @@ export class PagamentoService {
       throw error;
     }
 
-    if (!Validators.isValidMoney(valor)) {
-      throw new ValidationError(
-        "Valor deve ser um número positivo, finito e não superior a R$ 1.000.000"
-      );
-    }
-
-    if (!Validators.isValidDate(data_pagamento)) {
-      throw new ValidationError("data_pagamento deve ser uma data válida");
-    }
-
-    if (!Validators.isDateWithinReasonableRange(data_pagamento)) {
-      throw new ValidationError("data_pagamento não pode estar mais de 10 anos no futuro");
-    }
-
     if (!Object.values(PAGAMENTO_ENUM).includes(forma_pagamento)) {
       throw new ValidationError(
         `Forma de pagamento inválida. Opções: ${Object.values(PAGAMENTO_ENUM).join(", ")}`
       );
-    }
-
-    if (pagamento_pendente_id && !Validators.isValidUUID(pagamento_pendente_id)) {
-      throw new ValidationError("pagamento_pendente_id deve ser um UUID válido");
     }
 
     if (observacao && !Validators.isValidString(observacao, 0, 255)) {
@@ -420,6 +422,7 @@ export class PagamentoService {
 
     try {
       return await TransactionHelper.executeTransaction(async (transaction) => {
+        // Criar o pagamento
         const pagamento = await this.pagamentoRepository.createPagamento(
           user_id,
           valor,
@@ -429,126 +432,61 @@ export class PagamentoService {
           transaction
         );
 
-        let descricaoPendente = "Pagamento Manual";
+        // Marcar pagamento pendente como PAGO
+        await this.pagamentoPendenteRepository.updateStatusPagamentoPendente(
+          pagamento_pendente_id,
+          STATUS.PAGO,
+          transaction
+        );
 
-        if (pagamento_pendente_id) {
-          const pendente =
-            await this.pagamentoPendenteRepository.getPagamentoPendenteById(pagamento_pendente_id);
-
-          if (!pendente) {
-            throw new ValidationError("Pagamento pendente não encontrado");
-          }
-
-          if (pendente.user_id !== user_id) {
-            throw new ValidationError("Pagamento pendente não pertence ao usuário informado");
-          }
-
-          if (pendente.status === STATUS.PAGO || pendente.status === STATUS.CANCELADO) {
-            throw new ValidationError(
-              `Pagamento pendente já está ${pendente.status === STATUS.PAGO ? "pago" : "cancelado"}`
-            );
-          }
-
-          if (pendente.valor !== valor) {
-            throw new ValidationError(
-              `Valor do pagamento (${valor}) não corresponde ao valor do pendente (${pendente.valor})`
-            );
-          }
-
-          descricaoPendente = pendente.descricao;
-          await this.pagamentoPendenteRepository.updateStatusPagamentoPendente(
-            pagamento_pendente_id,
-            STATUS.PAGO,
-            transaction
-          );
-        } else {
-          const pendentes =
-            await this.pagamentoPendenteRepository.getPagamentosPendentesByUserId(user_id);
-          const pendentesPendentes = pendentes.filter(
-            (p) =>
-              p.valor === valor && (p.status === STATUS.PENDENTE || p.status === STATUS.ATRASADO)
-          );
-
-          if (pendentesPendentes.length === 0) {
-            Logger.warn("Nenhum pagamento pendente encontrado para associar ao pagamento", {
-              user_id,
-              valor,
-            });
-          } else if (pendentesPendentes.length > 1) {
-            pendentesPendentes.sort((a, b) => {
-              const dataA = new Date(a.data_vencimento).getTime();
-              const dataB = new Date(b.data_vencimento).getTime();
-              return dataA - dataB;
-            });
-            Logger.warn("Múltiplos pagamentos pendentes encontrados, usando o mais antigo", {
-              user_id,
-              valor,
-              total: pendentesPendentes.length,
-            });
-          }
-
-          const pendente = pendentesPendentes[0];
-          if (pendente) {
-            const pendenteAtualizado =
-              await this.pagamentoPendenteRepository.getPagamentoPendenteById(
-                pendente.id,
-                transaction
-              );
-
-            if (!pendenteAtualizado) {
-              throw new ValidationError("Pagamento pendente não encontrado");
-            }
-
-            if (
-              pendenteAtualizado.status === STATUS.PAGO ||
-              pendenteAtualizado.status === STATUS.CANCELADO
-            ) {
-              throw new ValidationError(
-                `Pagamento pendente já está ${pendenteAtualizado.status === STATUS.PAGO ? "pago" : "cancelado"}`
-              );
-            }
-
-            if (pendenteAtualizado.valor !== valor) {
-              throw new ValidationError(
-                `Valor do pagamento (${valor}) não corresponde ao valor do pendente (${pendenteAtualizado.valor})`
-              );
-            }
-
-            descricaoPendente = pendenteAtualizado.descricao;
-            await this.pagamentoPendenteRepository.updateStatusPagamentoPendente(
-              pendente.id,
-              STATUS.PAGO,
-              transaction
-            );
-          }
-        }
-
+        // Registrar no histórico
         await this.historicoRepository.createHistorico(
           user_id,
           TIPO.ENTRADA,
           valor,
           data_pagamento,
-          `Pagamento ${forma_pagamento} - ${descricaoPendente}`,
+          `Pagamento ${forma_pagamento} - ${pendente.descricao}`,
           transaction
         );
 
-        Logger.info("Pagamento completo registrado com sucesso", {
+        // Se tem assinatura associada e está PENDENTE, ativar
+        if (assinatura_id) {
+          const assinatura = await this.assinaturaRepository.getAssinaturaById(
+            assinatura_id,
+            transaction
+          );
+          if (assinatura && assinatura.status === STATUS_ASSINATURA.PENDENTE) {
+            await this.assinaturaRepository.updateStatusAssinatura(
+              assinatura_id,
+              STATUS_ASSINATURA.ATIVA,
+              transaction
+            );
+            Logger.info("Assinatura ativada com sucesso", { assinatura_id });
+          }
+        }
+
+        Logger.info("Pagamento registrado com sucesso", {
           pagamentoId: pagamento.id,
+          pagamento_pendente_id,
+          assinatura_id,
           user_id,
           valor,
           forma_pagamento,
         });
 
-        return pagamento;
+        return {
+          pagamento,
+          assinaturaAtivada: !!assinatura_id,
+        };
       });
     } catch (error) {
       if (error instanceof ValidationError) throw error;
-      Logger.error("Erro ao registrar pagamento completo", {
-        user_id,
-        valor,
+      if (error instanceof NotFoundError) throw error;
+      Logger.error("Erro ao registrar pagamento", {
+        pagamento_pendente_id,
         error: error instanceof Error ? error.message : String(error),
       });
-      throw new InternalServerError("Não foi possível registrar o pagamento completo");
+      throw new InternalServerError("Não foi possível registrar o pagamento");
     }
   }
 }

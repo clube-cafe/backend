@@ -22,13 +22,21 @@ describe("AssinaturaController", () => {
     return req;
   };
 
-  it("deve criar uma assinatura e retornar 201", async () => {
+  it("deve criar uma assinatura com pagamento pendente e retornar 201", async () => {
     const controller = new AssinaturaController();
     const mockService = {
       createAssinatura: jest.fn().mockResolvedValue({
-        id: "1",
-        user_id: VALID_UUID,
-        plano_id: VALID_UUID_2,
+        assinatura: {
+          id: "1",
+          user_id: VALID_UUID,
+          plano_id: VALID_UUID_2,
+          status: "PENDENTE",
+        },
+        pagamentoPendente: {
+          id: "pp1",
+          valor: 50,
+          descricao: "Ativação de assinatura - Plano Teste",
+        },
       }),
     } as any;
     (controller as any).assinaturaService = mockService;
@@ -50,9 +58,17 @@ describe("AssinaturaController", () => {
     );
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({
-      id: "1",
-      user_id: "123e4567-e89b-12d3-a456-426614174000",
-      plano_id: VALID_UUID_2,
+      assinatura: {
+        id: "1",
+        user_id: "123e4567-e89b-12d3-a456-426614174000",
+        plano_id: VALID_UUID_2,
+        status: "PENDENTE",
+      },
+      pagamentoPendente: {
+        id: "pp1",
+        valor: 50,
+        descricao: "Ativação de assinatura - Plano Teste",
+      },
     });
   });
 

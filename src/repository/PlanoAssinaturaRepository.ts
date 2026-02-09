@@ -52,6 +52,13 @@ export class PlanoAssinaturaRepository {
     return plano;
   }
 
+  async getPlanoByName(nome: string, transaction?: Transaction) {
+    return await PlanoAssinatura.findOne({
+      where: { nome },
+      transaction,
+    });
+  }
+
   async updatePlano(
     id: string,
     nome?: string,

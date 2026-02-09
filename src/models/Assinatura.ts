@@ -54,7 +54,7 @@ Assinatura.init(
     status: {
       type: DataTypes.ENUM(...Object.values(STATUS_ASSINATURA)),
       allowNull: false,
-      defaultValue: STATUS_ASSINATURA.ATIVA,
+      defaultValue: STATUS_ASSINATURA.PENDENTE,
     },
   },
   {

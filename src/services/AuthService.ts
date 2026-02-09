@@ -26,7 +26,7 @@ export class AuthService {
       throw new UnauthorizedError("Credenciais inválidas");
     }
 
-    const token = generateToken(user.id, user.email);
+    const token = generateToken(user.id, user.email, user.tipo_user);
 
     return {
       token,
@@ -39,20 +39,15 @@ export class AuthService {
     };
   }
 
-  async register(
-    nome: string,
-    email: string,
-    password: string,
-    tipo_user: TIPO_USER = TIPO_USER.ASSINANTE
-  ) {
+  async register(nome: string, email: string, password: string) {
     const existingUser = await userRepo.getUserByEmail(email);
 
     if (existingUser) {
       throw new ConflictError("Email já está registrado");
     }
 
-    const user = await userRepo.createUser(nome, email, tipo_user, password);
-    const token = generateToken(user.id, user.email);
+    const user = await userRepo.createUser(nome, email, TIPO_USER.ASSINANTE, password);
+    const token = generateToken(user.id, user.email, user.tipo_user);
 
     return {
       token,

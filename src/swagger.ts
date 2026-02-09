@@ -1,5 +1,6 @@
 import swaggerJsdoc from "swagger-jsdoc";
 import { swaggerSchemas } from "./swagger/schemas";
+import { env } from "./config/env";
 
 const options = {
   definition: {
@@ -15,13 +16,26 @@ const options = {
     },
     servers: [
       {
-        url: "http://localhost:3000",
+        url: `http://localhost:${env.PORT}`,
         description: "Servidor Local",
       },
     ],
     components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description: "Autenticação com token JWT",
+        },
+      },
       schemas: swaggerSchemas,
     },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
   },
   apis: ["./src/routes/**/*.ts"],
 };

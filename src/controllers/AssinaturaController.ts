@@ -122,7 +122,10 @@ export class AssinaturaController {
       }
 
       const assinatura = await this.assinaturaService.getAssinaturaById(id);
-      if (req.user && assinatura.user_id !== req.user.id) {
+
+      // Admin pode atualizar qualquer assinatura, usuário normal só a sua própria
+      const isAdmin = req.user && req.user.tipo_user === "ADMIN";
+      if (!isAdmin && req.user && assinatura.user_id !== req.user.id) {
         return res
           .status(403)
           .json({ message: "Você não tem permissão para modificar este recurso" });

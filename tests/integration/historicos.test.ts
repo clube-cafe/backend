@@ -1,7 +1,7 @@
 import request from 'supertest';
 import express from 'express';
 import historicosRouter from '../../src/routes/historicos';
-import usersRouter from '../../src/routes/users';
+import authRouter from '../../src/routes/authRoutes';
 import { errorHandler } from '../../src/middleware/errorHandler';
 import testSequelize from '../setup';
 import '../../src/models';
@@ -9,21 +9,23 @@ import '../../src/models';
 describe('Historicos API Integration Tests', () => {
   const app = express();
   app.use(express.json());
-  app.use('/users', usersRouter);
+  app.use('/auth', authRouter);
   app.use('/historicos', historicosRouter);
   app.use(errorHandler);
 
   let userId: string;
   let historicoId: string;
+  let authToken: string;
 
   beforeAll(async () => {
     await testSequelize.sync({ force: true });
-    const user = await request(app).post('/users').send({
+    const user = await request(app).post('/auth/register').send({
       nome: 'Usuario Historico',
       email: 'historico@example.com',
-      tipo_user: 'ASSINANTE',
+      password: '123456',
     });
-    userId = user.body.id;
+    userId = user.body.user.id;
+    authToken = user.body.token;
   });
 
   afterAll(async () => {
@@ -34,6 +36,7 @@ describe('Historicos API Integration Tests', () => {
     it('deve criar um histórico', async () => {
       const res = await request(app)
         .post('/historicos')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
           user_id: userId,
           tipo: 'ENTRADA',
@@ -50,7 +53,9 @@ describe('Historicos API Integration Tests', () => {
 
   describe('GET /historicos', () => {
     it('deve listar históricos', async () => {
-      const res = await request(app).get('/historicos');
+      const res = await request(app)
+        .get('/historicos')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
     });
@@ -58,7 +63,9 @@ describe('Historicos API Integration Tests', () => {
 
   describe('GET /historicos/:id', () => {
     it('deve obter histórico por id', async () => {
-      const res = await request(app).get(`/historicos/${historicoId}`);
+      const res = await request(app)
+        .get(`/historicos/${historicoId}`)
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
       expect(res.body.id).toBe(historicoId);
     });
@@ -66,7 +73,9 @@ describe('Historicos API Integration Tests', () => {
 
   describe('GET /historicos/tipo/:tipo', () => {
     it('deve filtrar por tipo', async () => {
-      const res = await request(app).get('/historicos/tipo/ENTRADA');
+      const res = await request(app)
+        .get('/historicos/tipo/ENTRADA')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
     });
@@ -74,17 +83,23 @@ describe('Historicos API Integration Tests', () => {
 
   describe('GET totais', () => {
     it('deve retornar total de entradas', async () => {
-      const res = await request(app).get('/historicos/total/entradas');
+      const res = await request(app)
+        .get('/historicos/total/entradas')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
     });
 
     it('deve retornar total de saídas', async () => {
-      const res = await request(app).get('/historicos/total/saidas');
+      const res = await request(app)
+        .get('/historicos/total/saidas')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
     });
 
     it('deve retornar saldo', async () => {
-      const res = await request(app).get('/historicos/saldo');
+      const res = await request(app)
+        .get('/historicos/saldo')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
     });
   });
@@ -93,6 +108,7 @@ describe('Historicos API Integration Tests', () => {
     it('deve atualizar histórico', async () => {
       const res = await request(app)
         .put(`/historicos/${historicoId}`)
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ descricao: 'Receita ajustada' });
       expect([200, 204]).toContain(res.status);
     });
@@ -100,7 +116,9 @@ describe('Historicos API Integration Tests', () => {
 
   describe('DELETE /historicos/:id', () => {
     it('deve deletar histórico', async () => {
-      const res = await request(app).delete(`/historicos/${historicoId}`);
+      const res = await request(app)
+        .delete(`/historicos/${historicoId}`)
+        .set('Authorization', `Bearer ${authToken}`);
       expect([200, 204, 404]).toContain(res.status);
     });
   });

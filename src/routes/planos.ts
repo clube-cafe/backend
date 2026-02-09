@@ -25,26 +25,32 @@ const router = Router();
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               nome:
- *                 type: string
- *               descricao:
- *                 type: string
- *               valor:
- *                 type: number
- *               periodicidade:
- *                 type: string
- *                 enum: [MENSAL, TRIMESTRAL, SEMESTRAL, ANUAL]
+ *             $ref: '#/components/schemas/PlanoAssinaturaCreateRequest'
  *     responses:
  *       201:
  *         description: Plano criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PlanoAssinaturaResponse'
  *       400:
  *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationError'
  *       401:
  *         description: Não autorizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UnauthorizedError'
  *       403:
  *         description: Acesso negado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ForbiddenError'
  */
 router.post(
   "/",
@@ -78,8 +84,18 @@ router.post(
  *     responses:
  *       200:
  *         description: Lista de planos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/PlanoAssinaturaResponse'
  *       500:
  *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get("/", planoAssinaturaController.getAllPlanos.bind(planoAssinaturaController));
 
@@ -95,12 +111,21 @@ router.get("/", planoAssinaturaController.getAllPlanos.bind(planoAssinaturaContr
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         description: ID do plano
  *     responses:
  *       200:
  *         description: Plano encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PlanoAssinaturaResponse'
  *       404:
  *         description: Plano não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NotFoundError'
  *       500:
  *         description: Erro interno do servidor
  */
@@ -120,36 +145,37 @@ router.get("/:id", planoAssinaturaController.getPlanoById.bind(planoAssinaturaCo
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         description: ID do plano
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               nome:
- *                 type: string
- *               descricao:
- *                 type: string
- *               valor:
- *                 type: number
- *               periodicidade:
- *                 type: string
- *                 enum: [MENSAL, TRIMESTRAL, SEMESTRAL, ANUAL]
- *               ativo:
- *                 type: boolean
+ *             $ref: '#/components/schemas/PlanoAssinaturaUpdateRequest'
  *     responses:
  *       200:
  *         description: Plano atualizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PlanoAssinaturaResponse'
  *       400:
  *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationError'
  *       401:
  *         description: Não autorizado
  *       403:
  *         description: Acesso negado
  *       404:
  *         description: Plano não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NotFoundError'
  */
 router.put(
   "/:id",
@@ -172,16 +198,29 @@ router.put(
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         description: ID do plano
  *     responses:
  *       204:
  *         description: Plano deletado com sucesso
  *       401:
  *         description: Não autorizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UnauthorizedError'
  *       403:
  *         description: Acesso negado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ForbiddenError'
  *       404:
  *         description: Plano não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NotFoundError'
  */
 router.delete(
   "/:id",

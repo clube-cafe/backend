@@ -12,29 +12,27 @@ const delinquenciaController = new DelinquenciaController();
  *     description: Retorna todas as assinaturas com pagamentos atrasados, agrupadas por usuário
  *     tags:
  *       - Delinquência
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Relatório de inadimplência obtido com sucesso
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       user:
- *                         type: object
- *                       assinaturas:
- *                         type: array
- *                       atrasos:
- *                         type: object
+ *               $ref: '#/components/schemas/DelinquenciaRelatorio'
+ *       401:
+ *         description: Não autorizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UnauthorizedError'
  *       500:
  *         description: Erro ao obter relatório
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get("/", (req: Request, res: Response) => {
   return delinquenciaController.obterAssinaturasEmAtraso(req, res);
@@ -48,6 +46,8 @@ router.get("/", (req: Request, res: Response) => {
  *     description: Retorna detalhes de atrasos, próximos pagamentos e resumo de assinaturas do usuário
  *     tags:
  *       - Delinquência
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: user_id
@@ -55,13 +55,32 @@ router.get("/", (req: Request, res: Response) => {
  *         schema:
  *           type: string
  *           format: uuid
+ *         description: ID do usuário
  *     responses:
  *       200:
  *         description: Relatório obtido com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DelinquenciaUsuario'
  *       404:
  *         description: Usuário não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NotFoundError'
+ *       401:
+ *         description: Não autorizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UnauthorizedError'
  *       500:
  *         description: Erro ao obter relatório
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get("/:user_id", (req: Request, res: Response) => {
   return delinquenciaController.obterRelatorioPorUser(req, res);

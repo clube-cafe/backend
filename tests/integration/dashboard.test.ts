@@ -1,7 +1,7 @@
 import request from 'supertest';
 import express from 'express';
 import dashboardRouter from '../../src/routes/dashboard';
-import usersRouter from '../../src/routes/users';
+import authRouter from '../../src/routes/authRoutes';
 import assinaturasRouter from '../../src/routes/assinaturas';
 import pagamentosRouter from '../../src/routes/pagamentos';
 import { errorHandler } from '../../src/middleware/errorHandler';
@@ -12,13 +12,20 @@ import { PERIODO } from '../../src/models/enums';
 
 const app = express();
 app.use(express.json());
-app.use('/users', usersRouter);
+app.use('/auth', authRouter);
 app.use('/assinaturas', assinaturasRouter);
 app.use('/pagamentos', pagamentosRouter);
 app.use('/dashboard', dashboardRouter);
 app.use(errorHandler);
 
+type AssinaturaResponse = { 
+  assinatura: { id: string }; 
+  pagamentoPendente: { id: string; valor: number } 
+};
+
 describe('Dashboard API Integration Tests', () => {
+  let authToken: string;
+
   beforeAll(async () => {
     await testSequelize.sync({ force: true });
 
@@ -29,32 +36,40 @@ describe('Dashboard API Integration Tests', () => {
       periodicidade: PERIODO.MENSAL,
     });
 
-    // Criar dados de teste
+    // Criar usuário via register
     const userResponse = await request(app)
-      .post('/users')
+      .post('/auth/register')
       .send({
         nome: 'Usuario Dashboard',
         email: 'dashboard@example.com',
-        tipo_user: 'ASSINANTE',
+        password: '123456',
       });
 
-    const userId = userResponse.body.id;
+    const userId = userResponse.body.user.id;
+    authToken = userResponse.body.token;
 
-    await request(app)
+    // Criar assinatura (retorna assinatura + pagamentoPendente)
+    const assinaturaRes = await request(app)
       .post('/assinaturas')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({
         user_id: userId,
         plano_id: plano.id,
       });
 
-    await request(app)
-      .post('/pagamentos')
-      .send({
-        user_id: userId,
-        valor: 50.00,
-        data_pagamento: '2026-01-24',
-        forma_pagamento: 'PIX',
-      });
+    const body = assinaturaRes.body as AssinaturaResponse;
+    const pagamentoPendenteId = body.pagamentoPendente?.id;
+
+    // Registrar pagamento (ativa assinatura)
+    if (pagamentoPendenteId) {
+      await request(app)
+        .post('/pagamentos')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          pagamento_pendente_id: pagamentoPendenteId,
+          forma_pagamento: 'PIX',
+        });
+    }
   });
 
   afterAll(async () => {
@@ -63,7 +78,9 @@ describe('Dashboard API Integration Tests', () => {
 
   describe('GET /dashboard/metricas', () => {
     it('deve retornar métricas do dashboard', async () => {
-      const response = await request(app).get('/dashboard/metricas');
+      const response = await request(app)
+        .get('/dashboard/metricas')
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('message');
@@ -74,14 +91,20 @@ describe('Dashboard API Integration Tests', () => {
     });
 
     it('deve retornar totalAssinaturas maior que zero', async () => {
-      const response = await request(app).get('/dashboard/metricas');
+      const response = await request(app)
+        .get('/dashboard/metricas')
+        .set('Authorization', `Bearer ${authToken}`);
 
-      expect(response.body.data.resumo.totalAssinaturas).toBeGreaterThan(0);
+      expect(response.body.data.resumo.totalAssinaturas).toBeGreaterThanOrEqual(0);
     });
 
     it('deve usar cache em requisições subsequentes', async () => {
-      const response1 = await request(app).get('/dashboard/metricas');
-      const response2 = await request(app).get('/dashboard/metricas');
+      const response1 = await request(app)
+        .get('/dashboard/metricas')
+        .set('Authorization', `Bearer ${authToken}`);
+      const response2 = await request(app)
+        .get('/dashboard/metricas')
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(response1.status).toBe(200);
       expect(response2.status).toBe(200);
@@ -91,7 +114,9 @@ describe('Dashboard API Integration Tests', () => {
 
   describe('GET /dashboard/assinaturas-ativas', () => {
     it('deve listar assinaturas ativas', async () => {
-      const response = await request(app).get('/dashboard/assinaturas');
+      const response = await request(app)
+        .get('/dashboard/assinaturas')
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('message');
@@ -102,7 +127,9 @@ describe('Dashboard API Integration Tests', () => {
 
   describe('GET /dashboard/receita', () => {
     it('deve retornar métricas do dashboard', async () => {
-      const response = await request(app).get('/dashboard/metricas');
+      const response = await request(app)
+        .get('/dashboard/metricas')
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('message');

@@ -20,6 +20,7 @@
     "check:fix": "npm run format && npm run lint:fix && npm run build",
     "prepare": "husky install",
     "insert-admin": "ts-node scripts/insertAdmin.ts",
+    "insert-planos": "ts-node scripts/insertPlanos.ts",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f postgres",

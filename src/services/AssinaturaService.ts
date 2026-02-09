@@ -54,8 +54,9 @@ export class AssinaturaService {
     }
 
     // Verificar se o plano existe
+    let plano;
     try {
-      await this.planoRepository.getPlanoById(plano_id);
+      plano = await this.planoRepository.getPlanoById(plano_id);
     } catch (error) {
       if (error instanceof NotFoundError) {
         throw new ValidationError("Plano de assinatura não encontrado");
@@ -70,10 +71,57 @@ export class AssinaturaService {
       );
     }
 
-    // A data de início será definida automaticamente quando o pagamento for confirmado
-    const data_inicio = new Date();
+    // Verificar se já existe assinatura pendente
+    const assinaturasPendentes = await this.assinaturaRepository.getAssinaturasByUserId(user_id);
+    const pendente = assinaturasPendentes.find((a) => a.status === STATUS_ASSINATURA.PENDENTE);
+    if (pendente) {
+      throw new ConflictError("Usuário já possui uma assinatura pendente aguardando pagamento.");
+    }
 
-    return await this.assinaturaRepository.createAssinatura(user_id, plano_id, data_inicio);
+    try {
+      return await TransactionHelper.executeTransaction(async (transaction) => {
+        // Criar assinatura com status PENDENTE
+        const data_inicio = new Date();
+        const assinatura = await this.assinaturaRepository.createAssinatura(
+          user_id,
+          plano_id,
+          data_inicio,
+          transaction
+        );
+
+        // Criar pagamento pendente associado à assinatura
+        const pagamentoPendente = await this.pagamentoPendenteRepository.createPagamentoPendente(
+          user_id,
+          plano.valor,
+          new Date(), // Vencimento imediato para primeiro pagamento
+          `Ativação de assinatura - Plano ${plano.nome}`,
+          STATUS.PENDENTE,
+          transaction,
+          assinatura.id
+        );
+
+        Logger.info("Assinatura criada com pagamento pendente", {
+          assinaturaId: assinatura.id,
+          pagamentoPendenteId: pagamentoPendente.id,
+          user_id,
+          plano_id,
+          valor: plano.valor,
+        });
+
+        return {
+          assinatura,
+          pagamentoPendente,
+        };
+      });
+    } catch (error) {
+      if (error instanceof ValidationError || error instanceof ConflictError) throw error;
+      Logger.error("Erro ao criar assinatura", {
+        user_id,
+        plano_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new InternalServerError("Não foi possível criar a assinatura");
+    }
   }
 
   async createAssinaturaWithTransaction(user_id: string, plano_id: string) {

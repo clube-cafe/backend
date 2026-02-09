@@ -27,22 +27,20 @@ const router = Router();
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
- *                 format: password
+ *             $ref: '#/components/schemas/LoginRequest'
  *     responses:
  *       200:
  *         description: Login realizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
  *       400:
  *         description: Credenciais inválidas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post("/login", login);
 
@@ -50,36 +48,34 @@ router.post("/login", login);
  * @swagger
  * /auth/register:
  *   post:
- *     summary: Registrar novo usuário
+ *     summary: Registrar novo usuário (Assinante)
  *     tags: [Autenticação]
+ *     description: Cria um novo usuário do tipo ASSINANTE. Para criar ADMINs use o script npm run insert-admin
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - nome
- *               - email
- *               - password
- *               - tipo_user
- *             properties:
- *               nome:
- *                 type: string
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
- *                 format: password
- *               tipo_user:
- *                 type: string
- *                 enum: [ADMIN, ASSINANTE]
+ *             $ref: '#/components/schemas/RegisterRequest'
  *     responses:
  *       201:
  *         description: Usuário criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RegisterResponse'
+ *       409:
+ *         description: Email já cadastrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       400:
  *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationError'
  */
 router.post("/register", register);
 
@@ -94,6 +90,16 @@ router.post("/register", register);
  *     responses:
  *       200:
  *         description: Logout realizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessMessage'
+ *       401:
+ *         description: Não autorizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UnauthorizedError'
  */
 router.post("/logout", authenticate, logout);
 
@@ -108,8 +114,22 @@ router.post("/logout", authenticate, logout);
  *     responses:
  *       200:
  *         description: Dados do perfil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserResponse'
  *       404:
  *         description: Usuário não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NotFoundError'
+ *       401:
+ *         description: Não autorizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UnauthorizedError'
  */
 router.get("/profile", authenticate, getProfile);
 
@@ -126,16 +146,20 @@ router.get("/profile", authenticate, getProfile);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               nome:
- *                 type: string
- *               email:
- *                 type: string
- *                 format: email
+ *             $ref: '#/components/schemas/ProfileUpdateRequest'
  *     responses:
  *       200:
  *         description: Perfil atualizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserResponse'
+ *       401:
+ *         description: Não autorizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UnauthorizedError'
  */
 router.put("/profile", authenticate, updateProfile);
 
@@ -152,22 +176,26 @@ router.put("/profile", authenticate, updateProfile);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - currentPassword
- *               - newPassword
- *             properties:
- *               currentPassword:
- *                 type: string
- *                 format: password
- *               newPassword:
- *                 type: string
- *                 format: password
+ *             $ref: '#/components/schemas/ChangePasswordRequest'
  *     responses:
  *       200:
  *         description: Senha alterada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessMessage'
  *       400:
  *         description: Senha atual incorreta
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Não autorizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UnauthorizedError'
  */
 router.post("/change-password", authenticate, changePassword);
 
@@ -182,8 +210,24 @@ router.post("/change-password", authenticate, changePassword);
  *     responses:
  *       200:
  *         description: Lista de usuários
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/UserResponse'
+ *       401:
+ *         description: Não autorizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UnauthorizedError'
  *       403:
  *         description: Acesso negado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ForbiddenError'
  */
 router.get("/users", authenticate, isAdmin, getAllUsers);
 
@@ -201,11 +245,25 @@ router.get("/users", authenticate, isAdmin, getAllUsers);
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
+ *         description: ID do usuário
  *     responses:
  *       200:
  *         description: Dados do usuário
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserResponse'
  *       404:
  *         description: Usuário não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NotFoundError'
+ *       401:
+ *         description: Não autorizado
+ *       403:
+ *         description: Acesso negado
  */
 router.get("/users/:id", authenticate, isAdmin, getUserById);
 
@@ -223,25 +281,27 @@ router.get("/users/:id", authenticate, isAdmin, getUserById);
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
+ *         description: ID do usuário
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               nome:
- *                 type: string
- *               email:
- *                 type: string
- *               tipo_user:
- *                 type: string
- *                 enum: [ADMIN, ASSINANTE]
+ *             $ref: '#/components/schemas/UserUpdateRequest'
  *     responses:
  *       200:
  *         description: Usuário atualizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserResponse'
  *       404:
  *         description: Usuário não encontrado
+ *       401:
+ *         description: Não autorizado
+ *       403:
+ *         description: Acesso negado
  */
 router.put("/users/:id", authenticate, isAdmin, updateUser);
 
@@ -259,11 +319,21 @@ router.put("/users/:id", authenticate, isAdmin, updateUser);
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
+ *         description: ID do usuário
  *     responses:
  *       204:
  *         description: Usuário deletado
  *       404:
  *         description: Usuário não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NotFoundError'
+ *       401:
+ *         description: Não autorizado
+ *       403:
+ *         description: Acesso negado
  */
 router.delete("/users/:id", authenticate, isAdmin, deleteUser);
 

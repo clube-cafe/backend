@@ -80,6 +80,20 @@ export class AssinaturaRepository {
     return assinatura;
   }
 
+  async updateStatusAssinatura(id: string, status: STATUS_ASSINATURA, transaction?: Transaction) {
+    const assinatura = await Assinatura.findByPk(id, { transaction });
+    if (!assinatura) {
+      throw new NotFoundError("Assinatura não encontrada");
+    }
+
+    assinatura.status = status;
+    await assinatura.save({ transaction });
+
+    Logger.debug("Status da assinatura atualizado", { assinaturaId: id, status });
+
+    return assinatura;
+  }
+
   async deleteAssinatura(id: string, transaction?: Transaction) {
     const assinatura = await Assinatura.findByPk(id, { transaction });
     if (!assinatura) {

@@ -1,7 +1,7 @@
 import request from 'supertest';
 import express from 'express';
 import delinquenciaRouter from '../../src/routes/delinquencia';
-import usersRouter from '../../src/routes/users';
+import authRouter from '../../src/routes/authRoutes';
 import assinaturasRouter from '../../src/routes/assinaturas';
 import pagamentosPendentesRouter from '../../src/routes/pagamentosPendentes';
 import { errorHandler } from '../../src/middleware/errorHandler';
@@ -10,16 +10,22 @@ import '../../src/models';
 import { PlanoAssinatura } from '../../src/models/PlanoAssinatura';
 import { PERIODO } from '../../src/models/enums';
 
+type AssinaturaResponse = { 
+  assinatura: { id: string }; 
+  pagamentoPendente: { id: string; valor: number } 
+};
+
 describe('Delinquencia API Integration Tests', () => {
   const app = express();
   app.use(express.json());
-  app.use('/users', usersRouter);
+  app.use('/auth', authRouter);
   app.use('/assinaturas', assinaturasRouter);
   app.use('/pagamentos-pendentes', pagamentosPendentesRouter);
   app.use('/delinquencia', delinquenciaRouter);
   app.use(errorHandler);
 
   let userId: string;
+  let authToken: string;
 
   beforeAll(async () => {
     await testSequelize.sync({ force: true });
@@ -31,23 +37,32 @@ describe('Delinquencia API Integration Tests', () => {
       periodicidade: PERIODO.MENSAL,
     });
 
-    const user = await request(app).post('/users').send({
+    const user = await request(app).post('/auth/register').send({
       nome: 'Cliente Inadimplente',
       email: 'inadimplente@example.com',
-      tipo_user: 'ASSINANTE',
+      password: '123456',
     });
-    userId = user.body.id;
+    userId = user.body.user.id;
+    authToken = user.body.token;
 
-    const assinatura = await request(app).post('/assinaturas').send({
-      user_id: userId,
-      plano_id: plano.id,
-    });
-
-    await request(app)
-      .post('/pagamentos-pendentes')
+    // Criar assinatura (gera pagamento pendente automaticamente)
+    const assinaturaRes = await request(app)
+      .post('/assinaturas')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({
         user_id: userId,
-        assinatura_id: assinatura.body.id,
+        plano_id: plano.id,
+      });
+
+    const body = assinaturaRes.body as AssinaturaResponse;
+    const pagamentoPendenteId = body.pagamentoPendente?.id;
+
+    // Criar outro pagamento pendente atrasado
+    await request(app)
+      .post('/pagamentos-pendentes')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        user_id: userId,
         valor: 80,
         data_vencimento: '2025-12-01',
         descricao: 'Mensalidade atrasada',
@@ -61,7 +76,9 @@ describe('Delinquencia API Integration Tests', () => {
 
   describe('GET /delinquencia', () => {
     it('deve retornar relatório geral', async () => {
-      const res = await request(app).get('/delinquencia');
+      const res = await request(app)
+        .get('/delinquencia')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.data)).toBe(true);
     });
@@ -69,7 +86,9 @@ describe('Delinquencia API Integration Tests', () => {
 
   describe('GET /delinquencia/:user_id', () => {
     it('deve retornar relatório do usuário', async () => {
-      const res = await request(app).get(`/delinquencia/${userId}`);
+      const res = await request(app)
+        .get(`/delinquencia/${userId}`)
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('data');
     });

@@ -61,7 +61,7 @@ export const register = async (req: Request, res: Response) => {
     }
 
     // Sempre cria usuário como ASSINANTE
-    const result = await authService.register(nome, email, password, TIPO_USER.ASSINANTE);
+    const result = await authService.register(nome, email, password);
 
     return res.status(201).json({
       message: "Usuário criado com sucesso",

@@ -15,6 +15,38 @@ const historicoController = new HistoricoController();
  *     summary: Listar pagamentos por período
  *     tags:
  *       - Pagamentos
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: data_inicio
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Data inicial do período (YYYY-MM-DD)
+ *         example: "2026-01-01"
+ *       - in: query
+ *         name: data_fim
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Data final do período (YYYY-MM-DD)
+ *         example: "2026-12-31"
+ *     responses:
+ *       200:
+ *         description: Lista de pagamentos no período
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/PagamentoResponse'
+ *       400:
+ *         description: Parâmetros de data inválidos
+ *       401:
+ *         description: Não autorizado
  */
 router.get("/pagamentos-periodo", (req: Request, res: Response) =>
   pagamentoController.getPagamentosByDateRange(req, res)
@@ -27,6 +59,38 @@ router.get("/pagamentos-periodo", (req: Request, res: Response) =>
  *     summary: Listar pagamentos pendentes por período
  *     tags:
  *       - Pagamentos Pendentes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: data_inicio
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Data inicial do período (YYYY-MM-DD)
+ *         example: "2026-01-01"
+ *       - in: query
+ *         name: data_fim
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Data final do período (YYYY-MM-DD)
+ *         example: "2026-12-31"
+ *     responses:
+ *       200:
+ *         description: Lista de pagamentos pendentes no período
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/PagamentoPendenteResponse'
+ *       400:
+ *         description: Parâmetros de data inválidos
+ *       401:
+ *         description: Não autorizado
  */
 router.get("/pagamentos-pendentes-periodo", (req: Request, res: Response) =>
   pagamentoPendenteController.getPagamentosPendentesByPeriodo(req, res)
@@ -39,6 +103,38 @@ router.get("/pagamentos-pendentes-periodo", (req: Request, res: Response) =>
  *     summary: Listar histórico por período
  *     tags:
  *       - Histórico
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: data_inicio
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Data inicial do período (YYYY-MM-DD)
+ *         example: "2026-01-01"
+ *       - in: query
+ *         name: data_fim
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Data final do período (YYYY-MM-DD)
+ *         example: "2026-12-31"
+ *     responses:
+ *       200:
+ *         description: Lista de registros históricos no período
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/HistoricoResponse'
+ *       400:
+ *         description: Parâmetros de data inválidos
+ *       401:
+ *         description: Não autorizado
  */
 router.get("/historicos-periodo", (req: Request, res: Response) =>
   historicoController.getHistoricosByPeriodo(req, res)
