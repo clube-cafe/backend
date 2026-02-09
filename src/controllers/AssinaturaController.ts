@@ -178,38 +178,6 @@ export class AssinaturaController {
     }
   }
 
-  async createAssinaturaComPendencias(req: Request, res: Response) {
-    try {
-      const { user_id, plano_id, dia_vencimento } = req.body;
-
-      if (!Validators.isValidUUID(user_id)) {
-        return res.status(400).json({ message: "user_id inválido" });
-      }
-
-      if (req.user && req.user.id !== user_id) {
-        return res
-          .status(403)
-          .json({ message: "Você não tem permissão para criar recursos para outros usuários" });
-      }
-
-      const resultado = await this.assinaturaService.createAssinaturaComPendencias(
-        user_id,
-        plano_id,
-        dia_vencimento
-      );
-      return res.status(201).json({
-        message: "Assinatura criada com sucesso!",
-        ...resultado,
-      });
-    } catch (error: any) {
-      Logger.error("Erro ao processar requisição", {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      return res.status(400).json({ message: error.message });
-    }
-  }
-
   async cancelarAssinatura(req: Request, res: Response) {
     try {
       const { assinatura_id } = req.params;

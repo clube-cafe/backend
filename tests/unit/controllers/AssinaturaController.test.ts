@@ -266,46 +266,6 @@ describe("AssinaturaController", () => {
     expect(res.json).toHaveBeenCalledWith({ message: "Assinatura não encontrada" });
   });
 
-  it("deve criar assinatura com pendências (201)", async () => {
-    const controller = new AssinaturaController();
-    const mockService = {
-      createAssinaturaComPendencias: jest.fn().mockResolvedValue({ assinatura_id: "a1" }),
-    } as any;
-    (controller as any).assinaturaService = mockService;
-
-    const req = makeReq({
-      body: {
-        user_id: VALID_UUID,
-        plano_id: VALID_UUID_2,
-        dia_vencimento: 10,
-      },
-      user: { id: VALID_UUID, username: "test" },
-    });
-    const res = makeRes();
-
-    await controller.createAssinaturaComPendencias(req, res);
-    expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Assinatura criada com sucesso!",
-      assinatura_id: "a1",
-    });
-  });
-
-  it("deve retornar 400 em criação com pendências (erro)", async () => {
-    const controller = new AssinaturaController();
-    const mockService = {
-      createAssinaturaComPendencias: jest.fn().mockRejectedValue(new Error("erro")),
-    } as any;
-    (controller as any).assinaturaService = mockService;
-
-    const req = makeReq({ body: { user_id: VALID_UUID } });
-    const res = makeRes();
-
-    await controller.createAssinaturaComPendencias(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "erro" });
-  });
-
   it("deve cancelar assinatura (200)", async () => {
     const controller = new AssinaturaController();
     const mockService = {

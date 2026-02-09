@@ -52,49 +52,6 @@ router.post("/", (req: Request, res: Response) => assinaturaController.createAss
 
 /**
  * @swagger
- * /assinaturas/com-pendencias:
- *   post:
- *     summary: Criar assinatura e gerar pagamentos pendentes automaticamente
- *     description: Cria uma assinatura e gera automaticamente todos os pagamentos pendentes baseados na periodicidade do plano escolhido
- *     tags:
- *       - Assinaturas
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/AssinaturaComPendenciasRequest'
- *     responses:
- *       201:
- *         description: Assinatura criada com pendências geradas
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 assinatura:
- *                   $ref: '#/components/schemas/AssinaturaResponse'
- *                 pagamentosPendentes:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/PagamentoPendenteResponse'
- *       400:
- *         description: Dados inválidos
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ValidationError'
- *       401:
- *         description: Não autorizado
- */
-router.post("/com-pendencias", (req: Request, res: Response) =>
-  assinaturaController.createAssinaturaComPendencias(req, res)
-);
-
-/**
- * @swagger
  * /assinaturas:
  *   get:
  *     summary: Listar todas as assinaturas (Admin)
