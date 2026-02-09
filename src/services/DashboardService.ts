@@ -11,11 +11,11 @@ import { Logger } from "../utils/Logger";
  * Service para dashboard com otimizações de cache e queries paralelas
  */
 export class DashboardService {
-  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private static cache: Map<string, { data: any; timestamp: number }> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
   private isCacheValid(key: string): boolean {
-    const cached = this.cache.get(key);
+    const cached = DashboardService.cache.get(key);
     if (!cached) return false;
     return Date.now() - cached.timestamp < this.CACHE_TTL;
   }
@@ -26,7 +26,7 @@ export class DashboardService {
     // Retorna do cache se válido
     if (this.isCacheValid(cacheKey)) {
       Logger.debug("Cache hit para metricas");
-      return this.cache.get(cacheKey)?.data;
+      return DashboardService.cache.get(cacheKey)?.data;
     }
 
     const hoje = new Date();
@@ -95,7 +95,7 @@ export class DashboardService {
     };
 
     // Armazena no cache
-    this.cache.set(cacheKey, {
+    DashboardService.cache.set(cacheKey, {
       data: metricas,
       timestamp: Date.now(),
     });
@@ -109,7 +109,7 @@ export class DashboardService {
     // Usa cache se válido
     if (this.isCacheValid(cacheKey)) {
       Logger.debug("Cache hit para detalhes-assinaturas");
-      return this.cache.get(cacheKey)?.data;
+      return DashboardService.cache.get(cacheKey)?.data;
     }
 
     const assinaturas = await Assinatura.findAll({
@@ -125,24 +125,39 @@ export class DashboardService {
       order: [["createdAt", "DESC"]],
     });
 
+    const assinaturaIds = assinaturas.map((a: any) => a.id);
+
     const pendenciasMap = await PagamentoPendente.findAll({
       where: {
         status: { [Op.in]: [STATUS.PENDENTE, STATUS.ATRASADO] },
+        assinatura_id: { [Op.in]: assinaturaIds },
       },
-      attributes: ["valor", "data_vencimento", "status"],
+      attributes: ["valor", "data_vencimento", "status", "assinatura_id"],
       raw: true,
     });
 
-    const assinaturasComPendentes = assinaturas.map((ass: any) => ({
-      ...ass,
-      pendenciasPendentes: pendenciasMap.length,
-      valorEmAberto: pendenciasMap.reduce(
-        (sum: number, p: any) => sum + parseFloat(p.valor as any),
-        0
-      ),
-    }));
+    // Agrupa pendências por assinatura_id
+    const pendenciasPorAssinatura = new Map<string, any[]>();
+    pendenciasMap.forEach((p: any) => {
+      if (!pendenciasPorAssinatura.has(p.assinatura_id)) {
+        pendenciasPorAssinatura.set(p.assinatura_id, []);
+      }
+      pendenciasPorAssinatura.get(p.assinatura_id)!.push(p);
+    });
 
-    this.cache.set(cacheKey, {
+    const assinaturasComPendentes = assinaturas.map((ass: any) => {
+      const pendencias = pendenciasPorAssinatura.get(ass.id) || [];
+      return {
+        ...ass,
+        pendenciasPendentes: pendencias.length,
+        valorEmAberto: pendencias.reduce(
+          (sum: number, p: any) => sum + parseFloat(p.valor as any),
+          0
+        ),
+      };
+    });
+
+    DashboardService.cache.set(cacheKey, {
       data: assinaturasComPendentes,
       timestamp: Date.now(),
     });
@@ -155,7 +170,7 @@ export class DashboardService {
 
     if (this.isCacheValid(cacheKey)) {
       Logger.debug("Cache hit para pagamentos-pendentes");
-      return this.cache.get(cacheKey)?.data;
+      return DashboardService.cache.get(cacheKey)?.data;
     }
 
     const pagamentos = await PagamentoPendente.findAll({
@@ -166,7 +181,7 @@ export class DashboardService {
       raw: true,
     });
 
-    this.cache.set(cacheKey, {
+    DashboardService.cache.set(cacheKey, {
       data: pagamentos,
       timestamp: Date.now(),
     });
@@ -179,10 +194,10 @@ export class DashboardService {
    */
   clearCache(key?: string): void {
     if (key) {
-      this.cache.delete(key);
+      DashboardService.cache.delete(key);
       Logger.info(`Cache limpo para chave: ${key}`);
     } else {
-      this.cache.clear();
+      DashboardService.cache.clear();
       Logger.info("Cache completamente limpo");
     }
   }

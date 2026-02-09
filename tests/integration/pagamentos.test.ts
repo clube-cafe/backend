@@ -1,14 +1,18 @@
 import request from 'supertest';
 import express from 'express';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import pagamentosRouter from '../../src/routes/pagamentos';
 import authRouter from '../../src/routes/authRoutes';
 import assinaturasRouter from '../../src/routes/assinaturas';
 import planosRouter from '../../src/routes/planos';
 import { errorHandler } from '../../src/middleware/errorHandler';
+import { authenticate } from '../../src/middlewares/authMiddleware';
 import testSequelize from '../setup';
 import '../../src/models';
 import { PlanoAssinatura } from '../../src/models/PlanoAssinatura';
-import { PERIODO } from '../../src/models/enums';
+import { User } from '../../src/models/User';
+import { PERIODO, TIPO_USER } from '../../src/models/enums';
 
 type PagamentoResponse = { id: string; user_id: string };
 type AssinaturaResponse = { 
@@ -20,8 +24,8 @@ describe('Pagamentos API Integration Tests', () => {
   const app = express();
   app.use(express.json());
   app.use('/auth', authRouter);
-  app.use('/pagamentos', pagamentosRouter);
-  app.use('/assinaturas', assinaturasRouter);
+  app.use('/pagamentos', authenticate, pagamentosRouter);
+  app.use('/assinaturas', authenticate, assinaturasRouter);
   app.use('/planos', planosRouter);
   app.use(errorHandler);
 
@@ -30,9 +34,24 @@ describe('Pagamentos API Integration Tests', () => {
   let pagamentoPendenteId: string;
   let pagamentoId: string;
   let authToken: string;
+  let adminToken: string;
 
   beforeAll(async () => {
     await testSequelize.sync({ force: true });
+
+    // Criar admin para endpoints restritos
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const admin = await User.create({
+      nome: 'Admin Test',
+      email: 'admin@pagamento.com',
+      password: hashedPassword,
+      tipo_user: TIPO_USER.ADMIN
+    });
+    adminToken = jwt.sign(
+      { id: admin.id, email: 'admin@pagamento.com', tipo_user: 'ADMIN' },
+      process.env.JWT_SECRET || 'test-secret',
+      { expiresIn: '1h' }
+    );
 
     // Criar plano
     const plano = await PlanoAssinatura.create({
@@ -107,7 +126,7 @@ describe('Pagamentos API Integration Tests', () => {
     it('deve listar pagamentos', async () => {
       const res = await request(app)
         .get('/pagamentos')
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
     });

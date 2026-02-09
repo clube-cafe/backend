@@ -23,6 +23,19 @@ export const makeReq = (data: Partial<Request>) => {
 export const makeAuthenticatedReq = (data: Partial<Request>, userId: string = VALID_UUID) => {
   return makeReq({
     ...data,
-    user: { id: userId, username: "test" },
+    user: { id: userId, username: "test", tipo_user: "ASSINANTE" },
   });
+};
+
+export const makeAdminReq = (data: Partial<Request>, userId: string = VALID_UUID) => {
+  return makeReq({
+    ...data,
+    user: { id: userId, username: "admin", tipo_user: "ADMIN" },
+  });
+};
+
+export const createAppError = (statusCode: number, message: string): Error & { statusCode: number } => {
+  const error = new Error(message) as Error & { statusCode: number };
+  error.statusCode = statusCode;
+  return error;
 };

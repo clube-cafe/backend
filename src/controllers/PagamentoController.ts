@@ -44,6 +44,11 @@ export class PagamentoController {
 
   async getAllPagamentos(req: Request, res: Response) {
     try {
+      // Restringir acesso apenas para admin
+      if (!req.user || req.user.tipo_user !== "ADMIN") {
+        return res.status(403).json({ message: "Acesso restrito a administradores" });
+      }
+
       const limit = parseInt(req.query.limit as string) || 50;
       const offset = parseInt(req.query.offset as string) || 0;
 

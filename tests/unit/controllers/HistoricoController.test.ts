@@ -1,6 +1,6 @@
 import { HistoricoController } from "../../../src/controllers/HistoricoController";
 import { Request, Response } from "express";
-import { VALID_UUID, makeRes, makeReq, makeAuthenticatedReq } from "../test-helpers";
+import { VALID_UUID, makeRes, makeReq, makeAuthenticatedReq, makeAdminReq } from "../test-helpers";
 
 describe("HistoricoController", () => {
 
@@ -64,7 +64,7 @@ describe("HistoricoController", () => {
     const mockService = { getAllHistoricos: jest.fn().mockResolvedValue([{ id: "h1" }]) } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getAllHistoricos(makeReq({}), res);
+    await controller.getAllHistoricos(makeAdminReq({}), res);
     expect(res.json).toHaveBeenCalledWith([{ id: "h1" }]);
   });
 
@@ -73,7 +73,7 @@ describe("HistoricoController", () => {
     const mockService = { getAllHistoricos: jest.fn().mockRejectedValue(new Error("falha")) } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getAllHistoricos(makeReq({}), res);
+    await controller.getAllHistoricos(makeAdminReq({}), res);
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ message: "Erro ao obter históricos", error: "falha" });
   });
@@ -123,7 +123,7 @@ describe("HistoricoController", () => {
     const mockService = { getHistoricosByTipo: jest.fn().mockResolvedValue([{ id: "h1" }]) } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getHistoricosByTipo(makeReq({ params: { tipo: "ENTRADA" } }), res);
+    await controller.getHistoricosByTipo(makeAdminReq({ params: { tipo: "ENTRADA" } }), res);
     expect(res.json).toHaveBeenCalledWith([{ id: "h1" }]);
   });
 
@@ -132,7 +132,7 @@ describe("HistoricoController", () => {
     const mockService = { getHistoricosByTipo: jest.fn().mockRejectedValue(new Error("erro")) } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getHistoricosByTipo(makeReq({ params: { tipo: "X" } }), res);
+    await controller.getHistoricosByTipo(makeAdminReq({ params: { tipo: "X" } }), res);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ message: "erro" });
   });
@@ -142,7 +142,7 @@ describe("HistoricoController", () => {
     const mockService = { getHistoricosByPeriodo: jest.fn().mockResolvedValue([{ id: "h1" }]) } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getHistoricosByPeriodo(makeReq({ query: { data_inicio: "2024-01-01", data_fim: "2024-02-01" } }), res);
+    await controller.getHistoricosByPeriodo(makeAdminReq({ query: { data_inicio: "2024-01-01", data_fim: "2024-02-01" } }), res);
     expect(res.json).toHaveBeenCalledWith([{ id: "h1" }]);
   });
 
@@ -151,7 +151,7 @@ describe("HistoricoController", () => {
     const mockService = { getHistoricosByPeriodo: jest.fn().mockRejectedValue(new Error("erro periodo")) } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getHistoricosByPeriodo(makeReq({ 
+    await controller.getHistoricosByPeriodo(makeAdminReq({ 
       query: { data_inicio: "x", data_fim: "y" } 
     }), res);
     expect(res.status).toHaveBeenCalledWith(400);

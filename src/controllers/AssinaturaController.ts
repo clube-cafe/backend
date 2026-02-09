@@ -157,7 +157,10 @@ export class AssinaturaController {
       }
 
       const assinatura = await this.assinaturaService.getAssinaturaById(id);
-      if (assinatura.user_id !== req.user?.id) {
+      const isAdmin = req.user?.tipo_user === "ADMIN";
+      const isOwner = assinatura.user_id === req.user?.id;
+
+      if (!isAdmin && !isOwner) {
         return res
           .status(403)
           .json({ message: "Você não tem permissão para deletar este recurso" });
@@ -215,13 +218,7 @@ export class AssinaturaController {
         return res.status(400).json({ message: "assinatura_id inválido" });
       }
 
-      const assinatura = await this.assinaturaService.getAssinaturaById(assinatura_id);
-      if (req.user && assinatura.user_id !== req.user.id) {
-        return res
-          .status(403)
-          .json({ message: "Você não tem permissão para cancelar esta assinatura" });
-      }
-
+      // Nota: Apenas admins podem cancelar (verificado pelo middleware isAdmin na rota)
       const { motivo } = req.body;
       const resultado = await this.assinaturaService.cancelarAssinatura(assinatura_id, motivo);
       return res.status(200).json(resultado);
@@ -230,7 +227,8 @@ export class AssinaturaController {
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
       });
-      const statusCode = error.message.includes("não encontrada") ? 404 : 400;
+      // Usar statusCode do erro se disponível, senão usar 400 como padrão
+      const statusCode = error.statusCode || 400;
       return res.status(statusCode).json({ message: error.message });
     }
   }

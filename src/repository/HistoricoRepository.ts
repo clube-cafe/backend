@@ -1,6 +1,7 @@
 import { Historico } from "../models/Historico";
 import { TIPO } from "../models/enums";
 import { Op, Transaction } from "sequelize";
+import { NotFoundError } from "../utils/Errors";
 
 export class HistoricoRepository {
   async createHistorico(
@@ -88,7 +89,7 @@ export class HistoricoRepository {
   ) {
     const historico = await Historico.findByPk(id, { transaction });
     if (!historico) {
-      throw new Error("Histórico não encontrado");
+      throw new NotFoundError("Histórico");
     }
 
     if (tipo) historico.tipo = tipo;
@@ -103,7 +104,7 @@ export class HistoricoRepository {
   async deleteHistorico(id: string, transaction?: Transaction) {
     const historico = await Historico.findByPk(id, { transaction });
     if (!historico) {
-      throw new Error("Histórico não encontrado");
+      throw new NotFoundError("Histórico");
     }
 
     await historico.destroy({ transaction });

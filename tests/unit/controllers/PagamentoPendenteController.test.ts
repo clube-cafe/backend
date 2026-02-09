@@ -1,6 +1,6 @@
 import { PagamentoPendenteController } from "../../../src/controllers/PagamentoPendenteController";
 import { Request, Response } from "express";
-import { VALID_UUID, makeRes, makeReq, makeAuthenticatedReq } from "../test-helpers";
+import { VALID_UUID, makeRes, makeReq, makeAuthenticatedReq, makeAdminReq } from "../test-helpers";
 
 describe("PagamentoPendenteController", () => {
 
@@ -58,7 +58,7 @@ describe("PagamentoPendenteController", () => {
     const mockService = { getAllPagamentosPendentes: jest.fn().mockResolvedValue([{ id: "pp1" }]) } as any;
     (controller as any).pagamentoPendenteService = mockService;
     const res = makeRes();
-    await controller.getAllPagamentosPendentes(makeReq({ query: {} }), res);
+    await controller.getAllPagamentosPendentes(makeAdminReq({ query: {} }), res);
     expect(res.json).toHaveBeenCalledWith([{ id: "pp1" }]);
   });
 
@@ -67,7 +67,7 @@ describe("PagamentoPendenteController", () => {
     const mockService = { getAllPagamentosPendentes: jest.fn().mockRejectedValue(new Error("falha")) } as any;
     (controller as any).pagamentoPendenteService = mockService;
     const res = makeRes();
-    await controller.getAllPagamentosPendentes(makeReq({ query: {} }), res);
+    await controller.getAllPagamentosPendentes(makeAdminReq({ query: {} }), res);
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ message: "Erro ao obter pagamentos pendentes", error: "falha" });
   });
@@ -107,7 +107,7 @@ describe("PagamentoPendenteController", () => {
     const mockService = { getPagamentosPendentesByStatus: jest.fn().mockResolvedValue([{ id: "pp1" }]) } as any;
     (controller as any).pagamentoPendenteService = mockService;
     const res = makeRes();
-    await controller.getPagamentosPendentesByStatus(makeReq({ params: { status: "PENDENTE" } }), res);
+    await controller.getPagamentosPendentesByStatus(makeAdminReq({ params: { status: "PENDENTE" } }), res);
     expect(res.json).toHaveBeenCalledWith([{ id: "pp1" }]);
   });
 
@@ -116,7 +116,7 @@ describe("PagamentoPendenteController", () => {
     const mockService = { getPagamentosPendentesByStatus: jest.fn().mockRejectedValue(new Error("erro")) } as any;
     (controller as any).pagamentoPendenteService = mockService;
     const res = makeRes();
-    await controller.getPagamentosPendentesByStatus(makeReq({ params: { status: "P" } }), res);
+    await controller.getPagamentosPendentesByStatus(makeAdminReq({ params: { status: "P" } }), res);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ message: "erro" });
   });
@@ -200,6 +200,7 @@ describe("PagamentoPendenteController", () => {
   it("deve retornar 404 ao atualizar status pendente não encontrado", async () => {
     const controller = new PagamentoPendenteController();
     const mockService = { 
+      getPagamentoPendenteById: jest.fn().mockRejectedValue(new Error("Pagamento pendente não encontrado")),
       updateStatusPagamentoPendente: jest.fn().mockRejectedValue(new Error("Pagamento pendente não encontrado"))
     } as any;
     (controller as any).pagamentoPendenteService = mockService;

@@ -44,6 +44,11 @@ export class HistoricoController {
 
   async getAllHistoricos(req: Request, res: Response) {
     try {
+      // Restringir acesso apenas para admin
+      if (!req.user || req.user.tipo_user !== "ADMIN") {
+        return res.status(403).json({ message: "Acesso restrito a administradores" });
+      }
+
       const limit = parseInt(req.query.limit as string) || 50;
       const offset = parseInt(req.query.offset as string) || 0;
 
@@ -119,6 +124,11 @@ export class HistoricoController {
 
   async getHistoricosByTipo(req: Request, res: Response) {
     try {
+      // Restringir acesso apenas para admin
+      if (!req.user || req.user.tipo_user !== "ADMIN") {
+        return res.status(403).json({ message: "Acesso restrito a administradores" });
+      }
+
       const { tipo } = req.params;
       const historicos = await this.historicoService.getHistoricosByTipo(tipo as TIPO);
       return res.json(historicos);
@@ -133,6 +143,11 @@ export class HistoricoController {
 
   async getHistoricosByPeriodo(req: Request, res: Response) {
     try {
+      // Restringir acesso apenas para admin
+      if (!req.user || req.user.tipo_user !== "ADMIN") {
+        return res.status(403).json({ message: "Acesso restrito a administradores" });
+      }
+
       const { data_inicio, data_fim } = req.query;
 
       if (!data_inicio || !data_fim) {

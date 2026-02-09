@@ -2,6 +2,7 @@ import { Pagamento } from "../models/Pagamento";
 import { PAGAMENTO_ENUM } from "../models/enums";
 import { Op } from "sequelize";
 import { Transaction } from "sequelize";
+import { NotFoundError } from "../utils/Errors";
 
 export class PagamentoRepository {
   async createPagamento(
@@ -77,7 +78,7 @@ export class PagamentoRepository {
   ) {
     const pagamento = await Pagamento.findByPk(id, { transaction });
     if (!pagamento) {
-      throw new Error("Pagamento não encontrado");
+      throw new NotFoundError("Pagamento");
     }
 
     if (valor !== undefined) pagamento.valor = valor;
@@ -92,7 +93,7 @@ export class PagamentoRepository {
   async deletePagamento(id: string, transaction?: Transaction) {
     const pagamento = await Pagamento.findByPk(id, { transaction });
     if (!pagamento) {
-      throw new Error("Pagamento não encontrado");
+      throw new NotFoundError("Pagamento");
     }
 
     await pagamento.destroy({ transaction });

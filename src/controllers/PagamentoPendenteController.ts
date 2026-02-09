@@ -44,6 +44,11 @@ export class PagamentoPendenteController {
 
   async getAllPagamentosPendentes(req: Request, res: Response) {
     try {
+      // Restringir acesso apenas para admin
+      if (!req.user || req.user.tipo_user !== "ADMIN") {
+        return res.status(403).json({ message: "Acesso restrito a administradores" });
+      }
+
       const pagamentosPendentes = await this.pagamentoPendenteService.getAllPagamentosPendentes();
       return res.json(pagamentosPendentes);
     } catch (error: any) {
@@ -112,6 +117,10 @@ export class PagamentoPendenteController {
 
   async getPagamentosPendentesByStatus(req: Request, res: Response) {
     try {
+      // Restringir acesso apenas para admin
+      if (!req.user || req.user.tipo_user !== "ADMIN") {
+        return res.status(403).json({ message: "Acesso restrito a administradores" });
+      }
       const { status } = req.params;
       const pagamentosPendentes =
         await this.pagamentoPendenteService.getPagamentosPendentesByStatus(status as STATUS);
@@ -206,6 +215,18 @@ export class PagamentoPendenteController {
     try {
       const { id } = req.params;
       const { status } = req.body;
+
+      // Verificar se usuário pode alterar este pendente
+      const pendenteExistente = await this.pagamentoPendenteService.getPagamentoPendenteById(id);
+      const isAdmin = req.user?.tipo_user === "ADMIN";
+      const isOwner = pendenteExistente.user_id === req.user?.id;
+
+      if (!isAdmin && !isOwner) {
+        return res
+          .status(403)
+          .json({ message: "Você não tem permissão para alterar este recurso" });
+      }
+
       const pagamentoPendente = await this.pagamentoPendenteService.updateStatusPagamentoPendente(
         id,
         status

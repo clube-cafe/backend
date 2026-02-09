@@ -1,24 +1,45 @@
 import request from 'supertest';
 import express from 'express';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import historicosRouter from '../../src/routes/historicos';
 import authRouter from '../../src/routes/authRoutes';
 import { errorHandler } from '../../src/middleware/errorHandler';
+import { authenticate } from '../../src/middlewares/authMiddleware';
 import testSequelize from '../setup';
 import '../../src/models';
+import { User } from '../../src/models/User';
+import { TIPO_USER } from '../../src/models/enums';
 
 describe('Historicos API Integration Tests', () => {
   const app = express();
   app.use(express.json());
   app.use('/auth', authRouter);
-  app.use('/historicos', historicosRouter);
+  app.use('/historicos', authenticate, historicosRouter);
   app.use(errorHandler);
 
   let userId: string;
   let historicoId: string;
   let authToken: string;
+  let adminToken: string;
 
   beforeAll(async () => {
     await testSequelize.sync({ force: true });
+
+    // Criar admin para endpoints restritos
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const admin = await User.create({
+      nome: 'Admin Test',
+      email: 'admin@historico.com',
+      password: hashedPassword,
+      tipo_user: TIPO_USER.ADMIN
+    });
+    adminToken = jwt.sign(
+      { id: admin.id, email: 'admin@historico.com', tipo_user: 'ADMIN' },
+      process.env.JWT_SECRET || 'test-secret',
+      { expiresIn: '1h' }
+    );
+
     const user = await request(app).post('/auth/register').send({
       nome: 'Usuario Historico',
       email: 'historico@example.com',
@@ -55,7 +76,7 @@ describe('Historicos API Integration Tests', () => {
     it('deve listar históricos', async () => {
       const res = await request(app)
         .get('/historicos')
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
     });
@@ -75,7 +96,7 @@ describe('Historicos API Integration Tests', () => {
     it('deve filtrar por tipo', async () => {
       const res = await request(app)
         .get('/historicos/tipo/ENTRADA')
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
     });

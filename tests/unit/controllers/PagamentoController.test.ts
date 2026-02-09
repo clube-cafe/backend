@@ -1,6 +1,6 @@
 import { PagamentoController } from "../../../src/controllers/PagamentoController";
 import { Request, Response } from "express";
-import { VALID_UUID, makeRes, makeReq, makeAuthenticatedReq } from "../test-helpers";
+import { VALID_UUID, makeRes, makeReq, makeAuthenticatedReq, makeAdminReq } from "../test-helpers";
 
 describe("PagamentoController", () => {
 
@@ -58,7 +58,7 @@ describe("PagamentoController", () => {
     const mockService = { getAllPagamentos: jest.fn().mockResolvedValue([{ id: "p1" }]) } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.getAllPagamentos(makeReq({ query: {} }), res);
+    await controller.getAllPagamentos(makeAdminReq({ query: {} }), res);
     expect(res.json).toHaveBeenCalledWith([{ id: "p1" }]);
   });
 
@@ -67,7 +67,7 @@ describe("PagamentoController", () => {
     const mockService = { getAllPagamentos: jest.fn().mockRejectedValue(new Error("falha")) } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.getAllPagamentos(makeReq({ query: {} }), res);
+    await controller.getAllPagamentos(makeAdminReq({ query: {} }), res);
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ message: "Erro ao obter pagamentos", error: "falha" });
   });

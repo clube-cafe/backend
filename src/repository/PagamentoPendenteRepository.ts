@@ -110,7 +110,7 @@ export class PagamentoPendenteRepository {
   async deletePagamentoPendente(id: string, transaction?: Transaction) {
     const pagamentoPendente = await PagamentoPendente.findByPk(id, { transaction });
     if (!pagamentoPendente) {
-      throw new Error("Pagamento pendente não encontrado");
+      throw new NotFoundError("Pagamento pendente");
     }
 
     await pagamentoPendente.destroy({ transaction });
@@ -127,7 +127,7 @@ export class PagamentoPendenteRepository {
   async updateStatusPagamentoPendente(id: string, status: STATUS, transaction?: Transaction) {
     const pagamentoPendente = await PagamentoPendente.findByPk(id, { transaction });
     if (!pagamentoPendente) {
-      throw new Error("Pagamento pendente não encontrado");
+      throw new NotFoundError("Pagamento pendente");
     }
 
     pagamentoPendente.status = status;

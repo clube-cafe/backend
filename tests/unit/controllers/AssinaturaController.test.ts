@@ -1,5 +1,6 @@
 import { AssinaturaController } from "../../../src/controllers/AssinaturaController";
 import { Request, Response } from "express";
+import { createAppError } from "../test-helpers";
 
 describe("AssinaturaController", () => {
   const VALID_UUID = "123e4567-e89b-12d3-a456-426614174000";
@@ -328,7 +329,7 @@ describe("AssinaturaController", () => {
   it("deve retornar 404 ao cancelar assinatura não encontrada", async () => {
     const controller = new AssinaturaController();
     const mockService = {
-      getAssinaturaById: jest.fn().mockRejectedValue(new Error("Assinatura não encontrada")),
+      cancelarAssinatura: jest.fn().mockRejectedValue(createAppError(404, "Assinatura não encontrado(a)")),
     } as any;
     (controller as any).assinaturaService = mockService;
 
@@ -341,6 +342,6 @@ describe("AssinaturaController", () => {
 
     await controller.cancelarAssinatura(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ message: "Assinatura não encontrada" });
+    expect(res.json).toHaveBeenCalledWith({ message: "Assinatura não encontrado(a)" });
   });
 });

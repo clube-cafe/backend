@@ -159,6 +159,12 @@ export class AssinaturaService {
       );
     }
 
+    const assinaturasPendentes = await this.assinaturaRepository.getAssinaturasByUserId(user_id);
+    const pendente = assinaturasPendentes.find((a) => a.status === STATUS_ASSINATURA.PENDENTE);
+    if (pendente) {
+      throw new ConflictError("Usuário já possui uma assinatura pendente aguardando pagamento.");
+    }
+
     const data_inicio = new Date();
 
     try {
@@ -523,7 +529,7 @@ export class AssinaturaService {
    */
   async cancelarAssinatura(assinatura_id: string, motivo?: string) {
     if (!assinatura_id) {
-      throw new Error("ID da assinatura é obrigatório");
+      throw new ValidationError("ID da assinatura é obrigatório");
     }
 
     return await TransactionHelper.executeTransaction(async (transaction) => {
@@ -533,11 +539,11 @@ export class AssinaturaService {
       })) as any;
 
       if (!assinatura) {
-        throw new Error("Assinatura não encontrada");
+        throw new NotFoundError("Assinatura");
       }
 
       if (assinatura.status === STATUS_ASSINATURA.CANCELADA) {
-        throw new Error("Assinatura já foi cancelada");
+        throw new ConflictError("Assinatura já foi cancelada");
       }
 
       // 2. Busca pendências que serão canceladas (apenas desta assinatura)

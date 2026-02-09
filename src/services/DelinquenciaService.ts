@@ -4,6 +4,7 @@ import { PlanoAssinatura } from "../models/PlanoAssinatura";
 import { User } from "../models/User";
 import { STATUS, STATUS_ASSINATURA } from "../models/enums";
 import { Op, col } from "sequelize";
+import { NotFoundError } from "../utils/Errors";
 
 export class DelinquenciaService {
   async obterAssinaturasEmAtraso() {
@@ -125,7 +126,7 @@ export class DelinquenciaService {
     });
 
     if (!user) {
-      throw new Error("Usuário não encontrado");
+      throw new NotFoundError("Usuário");
     }
 
     const assinaturas = await Assinatura.findAll({

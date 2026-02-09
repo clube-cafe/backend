@@ -462,6 +462,11 @@ export class PagamentoService {
               transaction
             );
             Logger.info("Assinatura ativada com sucesso", { assinatura_id });
+          } else if (assinatura && assinatura.status === STATUS_ASSINATURA.ATIVA) {
+            Logger.info("Assinatura já está ativa, pagamento recorrente processado", {
+              assinatura_id,
+              status: assinatura.status,
+            });
           }
         }
 
