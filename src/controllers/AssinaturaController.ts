@@ -90,29 +90,33 @@ export class AssinaturaController {
 
   async getAssinaturasByUserId(req: Request, res: Response) {
     try {
-      const { user_id } = req.params;
+      const { userId } = req.params;
 
-      if (!Validators.isValidUUID(user_id)) {
-        return res.status(400).json({ message: "user_id inválido" });
+      if (!Validators.isValidUUID(userId)) {
+        return res.status(400).json({ message: "userId inválido" });
       }
 
-      if (req.user?.id !== user_id) {
+      const isAdmin = req.user?.tipo_user === "ADMIN";
+      const isOwner = req.user?.id === userId;
+
+      if (!isAdmin && !isOwner) {
         return res
           .status(403)
           .json({ message: "Você não tem permissão para acessar este recurso" });
       }
 
-      const assinaturas = await this.assinaturaService.getAssinaturasByUserId(user_id);
-      return res.json(assinaturas);
+      const assinaturas = await this.assinaturaService.getAssinaturasByUserId(userId);
+
+      return res.status(200).json(assinaturas);
     } catch (error: any) {
       Logger.error("Erro ao processar requisição", {
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
       });
+
       return res.status(400).json({ message: error.message });
     }
   }
-
   async updateAssinatura(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -186,7 +190,6 @@ export class AssinaturaController {
         return res.status(400).json({ message: "assinatura_id inválido" });
       }
 
-      // Nota: Apenas admins podem cancelar (verificado pelo middleware isAdmin na rota)
       const { motivo } = req.body;
       const resultado = await this.assinaturaService.cancelarAssinatura(assinatura_id, motivo);
       return res.status(200).json(resultado);

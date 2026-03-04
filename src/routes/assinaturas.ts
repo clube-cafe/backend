@@ -85,6 +85,10 @@ router.get("/", isAdmin, (req: Request, res: Response) =>
   assinaturaController.getAllAssinaturas(req, res)
 );
 
+router.get("/user/:userId", (req: Request, res: Response) =>
+  assinaturaController.getAssinaturasByUserId(req, res)
+);
+
 /**
  * @swagger
  * /assinaturas/{id}:
@@ -219,7 +223,7 @@ router.put("/:id", (req: Request, res: Response) =>
  *             schema:
  *               $ref: '#/components/schemas/NotFoundError'
  */
-router.post("/:assinatura_id/cancelar", isAdmin, (req: Request, res: Response) =>
+router.post("/:assinatura_id/cancelar", (req: Request, res: Response) =>
   assinaturaController.cancelarAssinatura(req, res)
 );
 
