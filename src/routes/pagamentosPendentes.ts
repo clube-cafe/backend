@@ -293,4 +293,37 @@ router.get("/total/geral", (req: Request, res: Response) =>
   pagamentoPendenteController.getTotalPagamentosPendentes(req, res)
 );
 
+/**
+ * @swagger
+ * /pagamentos-pendentes/user/{user_id}:
+ *   get:
+ *     summary: Listar pagamentos pendentes por usuário
+ *     tags:
+ *       - Pagamentos Pendentes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: user_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID do usuário
+ *     responses:
+ *       200:
+ *         description: Lista de pagamentos pendentes do usuário
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/PagamentoPendenteResponse'
+ *       401:
+ *         description: Não autorizado
+ */
+router.get("/user/:user_id", (req: Request, res: Response) =>
+  pagamentoPendenteController.getPagamentosPendentesByUserId(req, res)
+);
+
 export default router;
