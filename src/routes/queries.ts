@@ -1,11 +1,9 @@
 import { Router, Request, Response } from "express";
 import { PagamentoController } from "../controllers/PagamentoController";
-import { PagamentoPendenteController } from "../controllers/PagamentoPendenteController";
 import { HistoricoController } from "../controllers/HistoricoController";
 
 const router = Router();
 const pagamentoController = new PagamentoController();
-const pagamentoPendenteController = new PagamentoPendenteController();
 const historicoController = new HistoricoController();
 
 /**
@@ -56,9 +54,9 @@ router.get("/pagamentos-periodo", (req: Request, res: Response) =>
  * @swagger
  * /pagamentos-pendentes-periodo:
  *   get:
- *     summary: Listar pagamentos pendentes por período
+ *     summary: Listar pagamentos pendentes por período de vencimento
  *     tags:
- *       - Pagamentos Pendentes
+ *       - Pagamentos
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -86,14 +84,14 @@ router.get("/pagamentos-periodo", (req: Request, res: Response) =>
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/PagamentoPendenteResponse'
+ *                 $ref: '#/components/schemas/PagamentoResponse'
  *       400:
  *         description: Parâmetros de data inválidos
  *       401:
  *         description: Não autorizado
  */
 router.get("/pagamentos-pendentes-periodo", (req: Request, res: Response) =>
-  pagamentoPendenteController.getPagamentosPendentesByPeriodo(req, res)
+  pagamentoController.getPagamentosByVencimentoPeriodo(req, res)
 );
 
 /**

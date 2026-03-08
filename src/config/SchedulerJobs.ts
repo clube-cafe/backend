@@ -1,11 +1,11 @@
 import cron from "node-cron";
-import { PagamentoPendenteRepository } from "../repository/PagamentoPendenteRepository";
+import { PagamentoRepository } from "../repository/PagamentoRepository";
 import { STATUS } from "../models/enums";
-import { PagamentoPendente } from "../models/PagamentoPendente";
+import { Pagamento } from "../models/Pagamento";
 import { Logger } from "../utils/Logger";
 import { TransactionHelper } from "./TransactionHelper";
 
-const pagamentoPendenteRepository = new PagamentoPendenteRepository();
+const pagamentoRepository = new PagamentoRepository();
 
 export class SchedulerJobs {
   static iniciarJobs() {
@@ -18,18 +18,14 @@ export class SchedulerJobs {
       try {
         Logger.info("[CRON] Executando: Marcar pagamentos atrasados");
 
-        const vencidos = await pagamentoPendenteRepository.getPagamentosVencidos();
+        const vencidos = await pagamentoRepository.getPagamentosVencidos();
         const pendentesParaAtualizar = vencidos.filter((p) => p.status === STATUS.PENDENTE);
 
         if (pendentesParaAtualizar.length > 0) {
           await TransactionHelper.executeTransaction(async (transaction) => {
             await Promise.all(
               pendentesParaAtualizar.map((pendente) =>
-                pagamentoPendenteRepository.updateStatusPagamentoPendente(
-                  pendente.id,
-                  STATUS.ATRASADO,
-                  transaction
-                )
+                pagamentoRepository.updateStatusPagamento(pendente.id, STATUS.ATRASADO, transaction)
               )
             );
           });
@@ -53,11 +49,11 @@ export class SchedulerJobs {
         em3Dias.setUTCDate(em3Dias.getUTCDate() + 3);
         em3Dias.setUTCHours(23, 59, 59, 999);
 
-        const vencendo = await pagamentoPendenteRepository.getPagamentosVencendo(hoje, em3Dias);
+        const vencendo = await pagamentoRepository.getPagamentosVencendo(hoje, em3Dias);
 
         if (vencendo && vencendo.length > 0) {
           Logger.info(`[CRON] ${vencendo.length} pagamentos vencendo em 3 dias:`);
-          vencendo.forEach((p: PagamentoPendente) => {
+          vencendo.forEach((p: Pagamento) => {
             Logger.info(`  - ${p.descricao} | R$ ${p.valor} | ${p.data_vencimento}`);
           });
         } else {

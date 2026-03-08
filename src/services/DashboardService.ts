@@ -1,6 +1,5 @@
 import { Assinatura } from "../models/Assinatura";
 import { PlanoAssinatura } from "../models/PlanoAssinatura";
-import { PagamentoPendente } from "../models/PagamentoPendente";
 import { Pagamento } from "../models/Pagamento";
 import { STATUS } from "../models/enums";
 import sequelize from "../config/database";
@@ -54,16 +53,16 @@ export class DashboardService {
           },
         },
       }),
-      PagamentoPendente.count({
+      Pagamento.count({
         where: { status: STATUS.PENDENTE },
       }),
-      PagamentoPendente.count({
+      Pagamento.count({
         where: { status: STATUS.ATRASADO },
       }),
-      PagamentoPendente.sum("valor", {
+      Pagamento.sum("valor", {
         where: { status: STATUS.PENDENTE },
       }),
-      PagamentoPendente.sum("valor", {
+      Pagamento.sum("valor", {
         where: { status: STATUS.ATRASADO },
       }),
       Assinatura.findAll({
@@ -127,7 +126,7 @@ export class DashboardService {
 
     const assinaturaIds = assinaturas.map((a: any) => a.id);
 
-    const pendenciasMap = await PagamentoPendente.findAll({
+    const pendenciasMap = await Pagamento.findAll({
       where: {
         status: { [Op.in]: [STATUS.PENDENTE, STATUS.ATRASADO] },
         assinatura_id: { [Op.in]: assinaturaIds },
@@ -173,7 +172,7 @@ export class DashboardService {
       return DashboardService.cache.get(cacheKey)?.data;
     }
 
-    const pagamentos = await PagamentoPendente.findAll({
+    const pagamentos = await Pagamento.findAll({
       where: { status: { [Op.in]: [STATUS.PENDENTE, STATUS.ATRASADO] } },
       attributes: ["id", "valor", "data_vencimento", "status", "descricao"],
       order: [["data_vencimento", "ASC"]],

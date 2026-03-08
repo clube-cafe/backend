@@ -1,4 +1,4 @@
-import { PagamentoPendente } from "../models/PagamentoPendente";
+import { Pagamento } from "../models/Pagamento";
 import { Assinatura } from "../models/Assinatura";
 import { PlanoAssinatura } from "../models/PlanoAssinatura";
 import { User } from "../models/User";
@@ -12,7 +12,7 @@ export class DelinquenciaService {
     hoje.setUTCHours(0, 0, 0, 0);
 
     // Busca todas as pendências atrasadas
-    const pagamentosAtrasados = await PagamentoPendente.findAll({
+    const pagamentosAtrasados = await Pagamento.findAll({
       where: {
         status: STATUS.ATRASADO,
         data_vencimento: { [Op.lt]: hoje },
@@ -141,7 +141,7 @@ export class DelinquenciaService {
       raw: true,
     });
 
-    const pagamentosAtrasados = await PagamentoPendente.findAll({
+    const pagamentosAtrasados = await Pagamento.findAll({
       where: {
         user_id,
         status: STATUS.ATRASADO,
@@ -151,7 +151,7 @@ export class DelinquenciaService {
       raw: true,
     });
 
-    const pagamentosPendentes = await PagamentoPendente.findAll({
+    const pagamentosPendentes = await Pagamento.findAll({
       where: {
         user_id,
         status: STATUS.PENDENTE,

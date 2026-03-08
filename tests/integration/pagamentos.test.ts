@@ -17,7 +17,7 @@ import { PERIODO, TIPO_USER } from '../../src/models/enums';
 type PagamentoResponse = { id: string; user_id: string };
 type AssinaturaResponse = { 
   assinatura: { id: string }; 
-  pagamentoPendente: { id: string; valor: number } 
+  pagamento: { id: string; valor: number } 
 };
 
 describe('Pagamentos API Integration Tests', () => {
@@ -31,7 +31,6 @@ describe('Pagamentos API Integration Tests', () => {
 
   let userId: string;
   let planoId: string;
-  let pagamentoPendenteId: string;
   let pagamentoId: string;
   let authToken: string;
   let adminToken: string;
@@ -76,8 +75,8 @@ describe('Pagamentos API Integration Tests', () => {
     await testSequelize.close();
   });
 
-  describe('POST /pagamentos (via pagamento pendente)', () => {
-    it('deve criar uma assinatura e pagamento pendente', async () => {
+  describe('POST /pagamentos (via assinatura)', () => {
+    it('deve criar uma assinatura e pagamento', async () => {
       const res = await request(app)
         .post('/assinaturas')
         .set('Authorization', `Bearer ${authToken}`)
@@ -89,17 +88,17 @@ describe('Pagamentos API Integration Tests', () => {
       expect([200, 201]).toContain(res.status);
       const body = res.body as AssinaturaResponse;
       expect(body.assinatura).toBeTruthy();
-      expect(body.pagamentoPendente).toBeTruthy();
-      expect(body.pagamentoPendente.valor).toBe(50);
-      pagamentoPendenteId = body.pagamentoPendente.id;
+      expect(body.pagamento).toBeTruthy();
+      expect(body.pagamento.valor).toBe(50);
+      pagamentoId = body.pagamento.id;
     });
 
     it('deve registrar pagamento e ativar assinatura', async () => {
       const res = await request(app)
-        .post('/pagamentos')
+        .post('/pagamentos/registrar')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          pagamento_pendente_id: pagamentoPendenteId,
+          pagamento_id: pagamentoId,
           forma_pagamento: 'PIX',
         });
 
@@ -111,10 +110,10 @@ describe('Pagamentos API Integration Tests', () => {
 
     it('deve rejeitar pagamento já realizado', async () => {
       const res = await request(app)
-        .post('/pagamentos')
+        .post('/pagamentos/registrar')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          pagamento_pendente_id: pagamentoPendenteId,
+          pagamento_id: pagamentoId,
           forma_pagamento: 'PIX',
         });
 

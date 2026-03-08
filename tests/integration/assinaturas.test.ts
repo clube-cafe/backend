@@ -19,7 +19,7 @@ app.use(errorHandler);
 
 type AssinaturaResponse = { 
   assinatura: { id: string; status: string; user_id: string; plano_id: string }; 
-  pagamentoPendente: { id: string; valor: number } 
+  pagamento: { id: string; valor: number } 
 };
 
 describe('Assinaturas API Integration Tests', () => {
@@ -92,8 +92,8 @@ describe('Assinaturas API Integration Tests', () => {
       expect(body.assinatura.user_id).toBe(userId);
       expect(body.assinatura.plano_id).toBe(planoId);
       expect(body.assinatura.status).toBe('PENDENTE');
-      expect(body.pagamentoPendente).toBeTruthy();
-      expect(body.pagamentoPendente.valor).toBe(50);
+      expect(body.pagamento).toBeTruthy();
+      expect(body.pagamento.valor).toBe(50);
       assinaturaId = body.assinatura.id;
     });
 

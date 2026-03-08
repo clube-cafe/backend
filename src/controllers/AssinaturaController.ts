@@ -17,28 +17,28 @@ export class AssinaturaController {
       if (!Validators.isValidUUID(user_id)) {
         return res.status(400).json({ message: "user_id inválido" });
       }
-      
+
       if (!Validators.isValidUUID(plano_id)) {
         return res.status(400).json({ message: "plano_id inválido" });
       }
-  
+
       if (req.user && req.user.id !== user_id) {
         return res
           .status(403)
           .json({ message: "Você não tem permissão para criar recursos para outros usuários" });
       }
-  
+
       const resultado = await this.assinaturaService.createAssinatura(user_id, plano_id);
-      
+
       return res.status(201).json({
         assinatura: resultado.assinatura,
-        pagamento_pendente: {
-          id: resultado.pagamentoPendente.id,
-          valor: resultado.pagamentoPendente.valor,
-          data_vencimento: resultado.pagamentoPendente.data_vencimento,
-          descricao: resultado.pagamentoPendente.descricao,
-          status: resultado.pagamentoPendente.status
-        }
+        pagamento: {
+          id: resultado.pagamento.id,
+          valor: resultado.pagamento.valor,
+          data_vencimento: resultado.pagamento.data_vencimento,
+          descricao: resultado.pagamento.descricao,
+          status: resultado.pagamento.status,
+        },
       });
     } catch (error: any) {
       Logger.error("Erro ao processar requisição", {

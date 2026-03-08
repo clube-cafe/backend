@@ -1,14 +1,12 @@
 import "./User";
 import "./Assinatura";
 import "./Pagamento";
-import "./PagamentoPendente";
 import "./Historico";
 import "./TokenBlacklist";
 import "./PlanoAssinatura";
 import { User } from "./User";
 import { Assinatura } from "./Assinatura";
 import { Pagamento } from "./Pagamento";
-import { PagamentoPendente } from "./PagamentoPendente";
 import { Historico } from "./Historico";
 import { PlanoAssinatura } from "./PlanoAssinatura";
 
@@ -29,14 +27,6 @@ Pagamento.belongsTo(User, {
   foreignKey: "user_id",
 });
 
-User.hasMany(PagamentoPendente, {
-  foreignKey: "user_id",
-  onDelete: "CASCADE",
-});
-PagamentoPendente.belongsTo(User, {
-  foreignKey: "user_id",
-});
-
 User.hasMany(Historico, {
   foreignKey: "user_id",
   onDelete: "CASCADE",
@@ -45,11 +35,11 @@ Historico.belongsTo(User, {
   foreignKey: "user_id",
 });
 
-Assinatura.hasMany(PagamentoPendente, {
+Assinatura.hasMany(Pagamento, {
   foreignKey: "assinatura_id",
   onDelete: "CASCADE",
 });
-PagamentoPendente.belongsTo(Assinatura, {
+Pagamento.belongsTo(Assinatura, {
   foreignKey: "assinatura_id",
 });
 

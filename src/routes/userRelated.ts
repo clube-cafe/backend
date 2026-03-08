@@ -1,13 +1,11 @@
 import { Router, Request, Response } from "express";
 import { AssinaturaController } from "../controllers/AssinaturaController";
 import { PagamentoController } from "../controllers/PagamentoController";
-import { PagamentoPendenteController } from "../controllers/PagamentoPendenteController";
 import { HistoricoController } from "../controllers/HistoricoController";
 
 const router = Router();
 const assinaturaController = new AssinaturaController();
 const pagamentoController = new PagamentoController();
-const pagamentoPendenteController = new PagamentoPendenteController();
 const historicoController = new HistoricoController();
 
 /**
@@ -129,7 +127,7 @@ router.get("/:user_id/pagamentos-total", (req: Request, res: Response) => {
  *   get:
  *     summary: Listar pagamentos pendentes de um usuário
  *     tags:
- *       - Pagamentos Pendentes
+ *       - Pagamentos
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -148,7 +146,7 @@ router.get("/:user_id/pagamentos-total", (req: Request, res: Response) => {
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/PagamentoPendenteResponse'
+ *                 $ref: '#/components/schemas/PagamentoResponse'
  *       404:
  *         description: Usuário não encontrado
  *         content:
@@ -159,7 +157,7 @@ router.get("/:user_id/pagamentos-total", (req: Request, res: Response) => {
  *         description: Não autorizado
  */
 router.get("/:user_id/pagamentos-pendentes", (req: Request, res: Response) => {
-  pagamentoPendenteController.getPagamentosPendentesByUserId(req, res);
+  pagamentoController.getPagamentosByUserId(req, res);
 });
 
 /**
@@ -168,7 +166,7 @@ router.get("/:user_id/pagamentos-pendentes", (req: Request, res: Response) => {
  *   get:
  *     summary: Total de pagamentos pendentes por usuário
  *     tags:
- *       - Pagamentos Pendentes
+ *       - Pagamentos
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -192,7 +190,7 @@ router.get("/:user_id/pagamentos-pendentes", (req: Request, res: Response) => {
  *         description: Não autorizado
  */
 router.get("/:user_id/pagamentos-pendentes-total", (req: Request, res: Response) => {
-  pagamentoPendenteController.getTotalPagamentosPendentesByUser(req, res);
+  pagamentoController.getTotalPagamentosPendentesByUser(req, res);
 });
 
 /**

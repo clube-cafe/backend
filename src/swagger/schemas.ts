@@ -208,8 +208,8 @@ export const swaggerSchemas = {
       assinatura: {
         $ref: "#/components/schemas/AssinaturaResponse",
       },
-      pagamentoPendente: {
-        $ref: "#/components/schemas/PagamentoPendenteResponse",
+      pagamento: {
+        $ref: "#/components/schemas/PagamentoResponse",
       },
     },
   },
@@ -424,9 +424,45 @@ export const swaggerSchemas = {
   // ========== PAGAMENTOS ==========
   PagamentoCreateRequest: {
     type: "object",
-    required: ["pagamento_pendente_id", "forma_pagamento"],
+    required: ["user_id", "valor", "data_vencimento", "descricao"],
     properties: {
-      pagamento_pendente_id: {
+      user_id: {
+        type: "string",
+        format: "uuid",
+        description: "ID do usuário",
+        example: "667b12bc-036b-4f7a-b7f9-46e1c855469d",
+      },
+      valor: {
+        type: "number",
+        format: "float",
+        description: "Valor a pagar em R$",
+        example: 50.0,
+      },
+      data_vencimento: {
+        type: "string",
+        format: "date",
+        description: "Data de vencimento",
+        example: "2026-02-10",
+      },
+      descricao: {
+        type: "string",
+        description: "Descrição do pagamento",
+        example: "Mensalidade Fevereiro 2026",
+      },
+      status: {
+        type: "string",
+        enum: ["PENDENTE", "ATRASADO"],
+        description: "Status inicial (padrão: PENDENTE)",
+        example: "PENDENTE",
+      },
+    },
+  },
+
+  RegistrarPagamentoRequest: {
+    type: "object",
+    required: ["pagamento_id", "forma_pagamento"],
+    properties: {
+      pagamento_id: {
         type: "string",
         format: "uuid",
         description: "ID do pagamento pendente a ser pago",
@@ -434,7 +470,7 @@ export const swaggerSchemas = {
       },
       forma_pagamento: {
         type: "string",
-        enum: ["PIX", "CARTAO", "BOLETO", "DINHEIRO"],
+        enum: ["PIX", "CARTAO", "CAIXA"],
         description: "Forma de pagamento",
         example: "PIX",
       },
@@ -454,30 +490,54 @@ export const swaggerSchemas = {
         format: "uuid",
         example: "xyz789-uuid-do-pagamento",
       },
-      pagamento_pendente_id: {
+      user_id: {
         type: "string",
         format: "uuid",
+        example: "667b12bc-036b-4f7a-b7f9-46e1c855469d",
+      },
+      assinatura_id: {
+        type: "string",
+        format: "uuid",
+        nullable: true,
         example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       },
       valor: {
         type: "number",
         format: "float",
-        description: "Valor pago (obtido do pagamento pendente)",
         example: 50.0,
+      },
+      data_vencimento: {
+        type: "string",
+        format: "date",
+        description: "Data de vencimento do pagamento",
+        example: "2026-02-10",
+      },
+      descricao: {
+        type: "string",
+        example: "Mensalidade Fevereiro 2026",
+      },
+      status: {
+        type: "string",
+        enum: ["PENDENTE", "ATRASADO", "PAGO", "CANCELADO"],
+        example: "PENDENTE",
+      },
+      forma_pagamento: {
+        type: "string",
+        enum: ["PIX", "CARTAO", "CAIXA"],
+        nullable: true,
+        description: "Preenchido quando status = PAGO",
+        example: "PIX",
       },
       data_pagamento: {
         type: "string",
         format: "date-time",
-        description: "Data/hora do pagamento (registrada pelo servidor)",
+        nullable: true,
+        description: "Preenchido quando status = PAGO",
         example: "2026-02-08T10:30:00Z",
-      },
-      forma_pagamento: {
-        type: "string",
-        enum: ["PIX", "CARTAO", "BOLETO", "DINHEIRO"],
-        example: "PIX",
       },
       observacao: {
         type: "string",
+        nullable: true,
         example: "Pagamento via app",
       },
       createdAt: {
@@ -491,12 +551,12 @@ export const swaggerSchemas = {
     },
   },
 
-  PagamentoCreateResponse: {
+  RegistrarPagamentoResponse: {
     type: "object",
     properties: {
       message: {
         type: "string",
-        example: "Pagamento registrado com sucesso. Assinatura ativada!",
+        example: "Pagamento registrado com sucesso",
       },
       pagamento: {
         $ref: "#/components/schemas/PagamentoResponse",
@@ -509,92 +569,7 @@ export const swaggerSchemas = {
     },
   },
 
-  // ========== PAGAMENTOS PENDENTES ==========
-  PagamentoPendenteCreateRequest: {
-    type: "object",
-    required: ["user_id", "valor", "data_vencimento", "descricao"],
-    properties: {
-      user_id: {
-        type: "string",
-        format: "uuid",
-        example: "667b12bc-036b-4f7a-b7f9-46e1c855469d",
-      },
-      assinatura_id: {
-        type: "string",
-        format: "uuid",
-        description: "ID da assinatura (opcional)",
-        example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-      },
-      valor: {
-        type: "number",
-        format: "float",
-        description: "Valor a pagar em R$",
-        example: 50.0,
-      },
-      data_vencimento: {
-        type: "string",
-        format: "date",
-        description: "Data de vencimento",
-        example: "2026-02-10",
-      },
-      descricao: {
-        type: "string",
-        description: "Descrição da pendência",
-        example: "Mensalidade Fevereiro 2026",
-      },
-    },
-  },
-
-  PagamentoPendenteResponse: {
-    type: "object",
-    properties: {
-      id: {
-        type: "string",
-        format: "uuid",
-        description: "ID do pagamento pendente",
-        example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-      },
-      user_id: {
-        type: "string",
-        format: "uuid",
-        example: "667b12bc-036b-4f7a-b7f9-46e1c855469d",
-      },
-      assinatura_id: {
-        type: "string",
-        format: "uuid",
-        example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-      },
-      valor: {
-        type: "number",
-        format: "float",
-        example: 50.0,
-      },
-      data_vencimento: {
-        type: "string",
-        format: "date",
-        example: "2026-02-10",
-      },
-      descricao: {
-        type: "string",
-        example: "Mensalidade Fevereiro 2026",
-      },
-      status: {
-        type: "string",
-        enum: ["PENDENTE", "ATRASADO", "PAGO", "CANCELADO"],
-        example: "PENDENTE",
-      },
-      createdAt: {
-        type: "string",
-        format: "date-time",
-      },
-      updatedAt: {
-        type: "string",
-        format: "date-time",
-      },
-    },
-  },
-
-  PagamentoPendenteUpdateRequest: {
+  PagamentoUpdateRequest: {
     type: "object",
     properties: {
       valor: {
@@ -611,16 +586,21 @@ export const swaggerSchemas = {
         type: "string",
         example: "Mensalidade atualizada",
       },
+      observacao: {
+        type: "string",
+        example: "Valor corrigido",
+      },
     },
   },
 
-  PagamentoPendenteStatusRequest: {
+  PagamentoStatusRequest: {
     type: "object",
     required: ["status"],
     properties: {
       status: {
         type: "string",
         enum: ["PENDENTE", "ATRASADO", "PAGO", "CANCELADO"],
+        description: "Novo status do pagamento",
         example: "ATRASADO",
       },
     },
@@ -823,7 +803,7 @@ export const swaggerSchemas = {
       data: {
         type: "array",
         items: {
-          $ref: "#/components/schemas/PagamentoPendenteResponse",
+          $ref: "#/components/schemas/PagamentoResponse",
         },
       },
     },
@@ -891,13 +871,13 @@ export const swaggerSchemas = {
           atrasos: {
             type: "array",
             items: {
-              $ref: "#/components/schemas/PagamentoPendenteResponse",
+              $ref: "#/components/schemas/PagamentoResponse",
             },
           },
           proximosPagamentos: {
             type: "array",
             items: {
-              $ref: "#/components/schemas/PagamentoPendenteResponse",
+              $ref: "#/components/schemas/PagamentoResponse",
             },
           },
           resumo: {
@@ -1042,9 +1022,6 @@ export const swaggerSchemas = {
   },
   Pagamento: {
     $ref: "#/components/schemas/PagamentoResponse",
-  },
-  PagamentoPendente: {
-    $ref: "#/components/schemas/PagamentoPendenteResponse",
   },
   Historico: {
     $ref: "#/components/schemas/HistoricoResponse",

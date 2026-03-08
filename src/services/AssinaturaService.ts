@@ -1,12 +1,12 @@
 import { AssinaturaRepository } from "../repository/AssinaturaRepository";
-import { PagamentoPendenteRepository } from "../repository/PagamentoPendenteRepository";
+import { PagamentoRepository } from "../repository/PagamentoRepository";
 import { HistoricoRepository } from "../repository/HistoricoRepository";
 import { UserRepository } from "../repository/UserRepository";
 import { PlanoAssinaturaRepository } from "../repository/PlanoAssinaturaRepository";
 import { PERIODO, STATUS, STATUS_ASSINATURA } from "../models/enums";
 import { TransactionHelper } from "../config/TransactionHelper";
 import { Assinatura } from "../models/Assinatura";
-import { PagamentoPendente } from "../models/PagamentoPendente";
+import { Pagamento } from "../models/Pagamento";
 import { Validators } from "../utils/Validators";
 import {
   ValidationError,
@@ -18,14 +18,14 @@ import { Logger } from "../utils/Logger";
 
 export class AssinaturaService {
   private assinaturaRepository: AssinaturaRepository;
-  private pagamentoPendenteRepository: PagamentoPendenteRepository;
+  private pagamentoRepository: PagamentoRepository;
   private historicoRepository: HistoricoRepository;
   private userRepository: UserRepository;
   private planoRepository: PlanoAssinaturaRepository;
 
   constructor() {
     this.assinaturaRepository = new AssinaturaRepository();
-    this.pagamentoPendenteRepository = new PagamentoPendenteRepository();
+    this.pagamentoRepository = new PagamentoRepository();
     this.historicoRepository = new HistoricoRepository();
     this.userRepository = new UserRepository();
     this.planoRepository = new PlanoAssinaturaRepository();
@@ -89,8 +89,8 @@ export class AssinaturaService {
           transaction
         );
 
-        // Criar pagamento pendente associado à assinatura
-        const pagamentoPendente = await this.pagamentoPendenteRepository.createPagamentoPendente(
+        // Criar pagamento associado à assinatura
+        const pagamento = await this.pagamentoRepository.createPagamento(
           user_id,
           plano.valor,
           new Date(), // Vencimento imediato para primeiro pagamento
@@ -102,7 +102,7 @@ export class AssinaturaService {
 
         Logger.info("Assinatura criada com pagamento pendente", {
           assinaturaId: assinatura.id,
-          pagamentoPendenteId: pagamentoPendente.id,
+          pagamentoId: pagamento.id,
           user_id,
           plano_id,
           valor: plano.valor,
@@ -110,7 +110,7 @@ export class AssinaturaService {
 
         return {
           assinatura,
-          pagamentoPendente,
+          pagamento,
         };
       });
     } catch (error) {
@@ -408,7 +408,7 @@ export class AssinaturaService {
       }
 
       // 2. Busca pendências que serão canceladas (apenas desta assinatura)
-      const pendenciasParaCancelar = await PagamentoPendente.findAll({
+      const pendenciasParaCancelar = await Pagamento.findAll({
         where: {
           assinatura_id: assinatura_id,
           status: [STATUS.PENDENTE, STATUS.ATRASADO],

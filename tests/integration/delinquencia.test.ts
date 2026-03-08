@@ -3,8 +3,9 @@ import express from 'express';
 import delinquenciaRouter from '../../src/routes/delinquencia';
 import authRouter from '../../src/routes/authRoutes';
 import assinaturasRouter from '../../src/routes/assinaturas';
-import pagamentosPendentesRouter from '../../src/routes/pagamentosPendentes';
+import pagamentosRouter from '../../src/routes/pagamentos';
 import { errorHandler } from '../../src/middleware/errorHandler';
+import { authenticate } from '../../src/middlewares/authMiddleware';
 import testSequelize from '../setup';
 import '../../src/models';
 import { PlanoAssinatura } from '../../src/models/PlanoAssinatura';
@@ -12,15 +13,15 @@ import { PERIODO } from '../../src/models/enums';
 
 type AssinaturaResponse = { 
   assinatura: { id: string }; 
-  pagamentoPendente: { id: string; valor: number } 
+  pagamento: { id: string; valor: number } 
 };
 
 describe('Delinquencia API Integration Tests', () => {
   const app = express();
   app.use(express.json());
   app.use('/auth', authRouter);
-  app.use('/assinaturas', assinaturasRouter);
-  app.use('/pagamentos-pendentes', pagamentosPendentesRouter);
+  app.use('/assinaturas', authenticate, assinaturasRouter);
+  app.use('/pagamentos', authenticate, pagamentosRouter);
   app.use('/delinquencia', delinquenciaRouter);
   app.use(errorHandler);
 
@@ -45,7 +46,7 @@ describe('Delinquencia API Integration Tests', () => {
     userId = user.body.user.id;
     authToken = user.body.token;
 
-    // Criar assinatura (gera pagamento pendente automaticamente)
+    // Criar assinatura (gera pagamento automaticamente)
     const assinaturaRes = await request(app)
       .post('/assinaturas')
       .set('Authorization', `Bearer ${authToken}`)
@@ -54,12 +55,9 @@ describe('Delinquencia API Integration Tests', () => {
         plano_id: plano.id,
       });
 
-    const body = assinaturaRes.body as AssinaturaResponse;
-    const pagamentoPendenteId = body.pagamentoPendente?.id;
-
-    // Criar outro pagamento pendente atrasado
+    // Criar outro pagamento avulso com vencimento passado
     await request(app)
-      .post('/pagamentos-pendentes')
+      .post('/pagamentos/criar')
       .set('Authorization', `Bearer ${authToken}`)
       .send({
         user_id: userId,

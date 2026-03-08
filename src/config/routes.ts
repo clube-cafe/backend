@@ -3,7 +3,6 @@ import { Express } from "express";
 import authRoutes from "../routes/authRoutes";
 import assinaturasRouter from "../routes/assinaturas";
 import pagamentosRouter from "../routes/pagamentos";
-import pagamentosPendentesRouter from "../routes/pagamentosPendentes";
 import historicosRouter from "../routes/historicos";
 import userRelatedRouter from "../routes/userRelated";
 import queriesRouter from "../routes/queries";
@@ -23,7 +22,6 @@ export const setupRoutes = (app: Express) => {
   app.use("/users", authenticate, userRelatedRouter);
   app.use("/assinaturas", authenticate, assinaturasRouter);
   app.use("/pagamentos", authenticate, pagamentosRouter);
-  app.use("/pagamentos-pendentes", authenticate, pagamentosPendentesRouter);
   app.use("/historicos", authenticate, historicosRouter);
   app.use("/dashboard", authenticate, dashboardRouter);
   app.use("/delinquencia", authenticate, delinquenciaRouter);

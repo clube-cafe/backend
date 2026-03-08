@@ -9,7 +9,7 @@ describe("PagamentoController", () => {
     const mockService = {
       createPagamento: jest
         .fn()
-        .mockResolvedValue({ id: "p1", user_id: "123e4567-e89b-12d3-a456-426614174000", valor: 50, forma_pagamento: "PIX" }),
+        .mockResolvedValue({ id: "p1", user_id: "123e4567-e89b-12d3-a456-426614174000", valor: 50, status: "PENDENTE" }),
     } as any;
     (controller as any).pagamentoService = mockService;
 
@@ -17,9 +17,9 @@ describe("PagamentoController", () => {
       body: {
         user_id: VALID_UUID,
         valor: 50,
-        data_pagamento: "2024-02-01",
-        forma_pagamento: "PIX",
-        observacao: "obs",
+        data_vencimento: "2024-02-01",
+        descricao: "Mensalidade",
+        status: "PENDENTE",
       },
     });
     const res = makeRes();
@@ -30,11 +30,11 @@ describe("PagamentoController", () => {
       VALID_UUID,
       50,
       new Date("2024-02-01"),
-      "PIX",
-      "obs"
+      "Mensalidade",
+      "PENDENTE"
     );
     expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({ id: "p1", user_id: "123e4567-e89b-12d3-a456-426614174000", valor: 50, forma_pagamento: "PIX" });
+    expect(res.json).toHaveBeenCalledWith({ id: "p1", user_id: "123e4567-e89b-12d3-a456-426614174000", valor: 50, status: "PENDENTE" });
   });
 
   it("deve retornar 400 quando forma de pagamento é inválida", async () => {
@@ -242,7 +242,7 @@ describe("PagamentoController", () => {
     await controller.registrarPagamentoCompleto(
       makeAuthenticatedReq({
         body: {
-          pagamento_pendente_id: VALID_UUID,
+          pagamento_id: VALID_UUID,
           forma_pagamento: "PIX",
           observacao: "obs",
         },
@@ -267,23 +267,23 @@ describe("PagamentoController", () => {
     const mockService = { registrarPagamentoCompleto: jest.fn().mockRejectedValue(new Error("erro")) } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
-    await controller.registrarPagamentoCompleto(makeAuthenticatedReq({ body: { pagamento_pendente_id: VALID_UUID, forma_pagamento: "PIX" } }), res);
+    await controller.registrarPagamentoCompleto(makeAuthenticatedReq({ body: { pagamento_id: VALID_UUID, forma_pagamento: "PIX" } }), res);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ message: "erro" });
   });
 
-  it("deve retornar 404 quando pagamento pendente não encontrado", async () => {
+  it("deve retornar 404 quando pagamento não encontrado", async () => {
     const controller = new PagamentoController();
     const mockService = { 
-      registrarPagamentoCompleto: jest.fn().mockRejectedValue(new Error("Pagamento pendente não encontrado")) 
+      registrarPagamentoCompleto: jest.fn().mockRejectedValue(new Error("Pagamento não encontrado")) 
     } as any;
     (controller as any).pagamentoService = mockService;
     const res = makeRes();
     await controller.registrarPagamentoCompleto(
-      makeAuthenticatedReq({ body: { pagamento_pendente_id: VALID_UUID, forma_pagamento: "PIX" } }), 
+      makeAuthenticatedReq({ body: { pagamento_id: VALID_UUID, forma_pagamento: "PIX" } }), 
       res
     );
     expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ message: "Pagamento pendente não encontrado" });
+    expect(res.json).toHaveBeenCalledWith({ message: "Pagamento não encontrado" });
   });
 });
