@@ -14,6 +14,7 @@ import { authenticate } from "../middlewares/authMiddleware";
 
 export const setupRoutes = (app: Express) => {
   app.use("/auth", authRoutes);
+  app.use("/planos", planosRouter);
 
   // Queries por período (protegidas)
   app.use("/", authenticate, queriesRouter);
@@ -25,7 +26,4 @@ export const setupRoutes = (app: Express) => {
   app.use("/historicos", authenticate, historicosRouter);
   app.use("/dashboard", authenticate, dashboardRouter);
   app.use("/delinquencia", authenticate, delinquenciaRouter);
-
-  // Rota pública para consultar planos (criar/editar requer admin)
-  app.use("/planos", planosRouter);
 };

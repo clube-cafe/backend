@@ -18,6 +18,19 @@ const PORT = env.PORT;
 // Segurança: Headers HTTP
 app.use(helmet());
 
+const allowedOrigins = [env.FRONTEND_URL, "http://localhost:5173", "http://127.0.0.1:5173"].filter(
+  Boolean
+) as string[];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+
 // Rate limiting: 100 requisições por 15 minutos por IP (desativado em testes)
 if (env.NODE_ENV !== "test") {
   const limiter = rateLimit({
@@ -29,15 +42,6 @@ if (env.NODE_ENV !== "test") {
   });
   app.use(limiter);
 }
-
-app.use(
-  cors({
-    origin: env.FRONTEND_URL || "http://localhost:5173",
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
 
 app.use(express.json({ limit: "10mb" }));
 app.use(requestLogger);

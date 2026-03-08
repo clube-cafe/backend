@@ -33,7 +33,7 @@ services:
       DB_PASS: postgres123
       DB_NAME: clube_cafe
       PORT: 3000
-      NODE_ENV: production
+      NODE_ENV: development
       JWT_SECRET: clube_cafe_jwt_secret_change_me_in_prod_32chars!
     ports:
       - "3000:3000"
