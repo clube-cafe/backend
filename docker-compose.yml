@@ -19,6 +19,30 @@ services:
     networks:
       - clube_cafe_network
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clube_cafe_api
+    restart: always
+    environment:
+      DB_DIALECT: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASS: postgres123
+      DB_NAME: clube_cafe
+      PORT: 3000
+      NODE_ENV: production
+      JWT_SECRET: clube_cafe_jwt_secret_change_me_in_prod_32chars!
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - clube_cafe_network
+
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: clube_cafe_pgadmin

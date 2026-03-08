@@ -22,9 +22,12 @@
     "insert-admin": "ts-node scripts/insertAdmin.ts",
     "insert-planos": "ts-node scripts/insertPlanos.ts",
     "docker:up": "docker-compose up -d",
+    "docker:up:build": "docker-compose up -d --build",
     "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f postgres",
-    "docker:restart": "docker-compose restart postgres",
+    "docker:logs": "docker-compose logs -f",
+    "docker:logs:api": "docker-compose logs -f api",
+    "docker:logs:db": "docker-compose logs -f postgres",
+    "docker:restart": "docker-compose restart",
     "docker:clean": "docker-compose down -v"
   },
   "repository": {
