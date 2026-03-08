@@ -31,11 +31,11 @@ app.use(
   })
 );
 
-// Rate limiting: 100 requisições por 15 minutos por IP (desativado em testes)
-if (env.NODE_ENV !== "test") {
+// Rate limiting (desativado em testes e em dev)
+if (env.NODE_ENV === "production") {
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 200,
     message: { error: "Muitas requisições, tente novamente mais tarde" },
     standardHeaders: true,
     legacyHeaders: false,
