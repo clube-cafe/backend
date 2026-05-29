@@ -13,6 +13,7 @@ interface EnvConfig {
   PORT: number;
   NODE_ENV: "development" | "production" | "test";
   JWT_SECRET: string;
+  JWT_EXPIRES_IN: string;
   FRONTEND_URL?: string;
   DEBUG?: string;
 }
@@ -69,6 +70,7 @@ export function getEnvConfig(): EnvConfig {
     NODE_ENV: nodeEnv,
     JWT_SECRET:
       process.env.JWT_SECRET || (isTest ? "test_jwt_secret_key_for_testing_only_min_32_chars" : ""),
+    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "1h",
     FRONTEND_URL: process.env.FRONTEND_URL,
     DEBUG: process.env.DEBUG,
   };

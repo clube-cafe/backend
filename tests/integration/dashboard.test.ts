@@ -4,7 +4,7 @@ import dashboardRouter from '../../src/routes/dashboard';
 import authRouter from '../../src/routes/authRoutes';
 import assinaturasRouter from '../../src/routes/assinaturas';
 import pagamentosRouter from '../../src/routes/pagamentos';
-import { errorHandler } from '../../src/middleware/errorHandler';
+import { errorHandler } from '../../src/middlewares/errorHandler';
 import testSequelize from '../setup';
 import '../../src/models';
 import { PlanoAssinatura } from '../../src/models/PlanoAssinatura';

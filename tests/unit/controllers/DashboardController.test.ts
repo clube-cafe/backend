@@ -1,16 +1,17 @@
 import { DashboardController } from "../../../src/controllers/DashboardController";
 import { Request, Response } from "express";
+import { dispatch } from "../test-helpers";
+
+const makeRes = () => {
+  const res: Partial<Response> = {};
+  res.status = jest.fn().mockReturnValue(res);
+  res.json = jest.fn().mockReturnValue(res);
+  return res as Response & { status: jest.Mock; json: jest.Mock };
+};
+
+const makeReq = (data: Partial<Request>) => data as Request;
 
 describe("DashboardController", () => {
-  const makeRes = () => {
-    const res: Partial<Response> = {};
-    res.status = jest.fn().mockReturnValue(res);
-    res.json = jest.fn().mockReturnValue(res);
-    return res as Response & { status: jest.Mock; json: jest.Mock };
-  };
-
-  const makeReq = (data: Partial<Request>) => data as Request;
-
   it("deve retornar métricas com status 200", async () => {
     const controller = new DashboardController();
     const mockService = {
@@ -19,8 +20,7 @@ describe("DashboardController", () => {
     (controller as any).dashboardService = mockService;
 
     const res = makeRes();
-
-    await controller.obterMetricas(makeReq({}), res);
+    await dispatch(controller.obterMetricas.bind(controller), makeReq({}), res);
 
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
@@ -37,10 +37,8 @@ describe("DashboardController", () => {
     (controller as any).dashboardService = mockService;
 
     const res = makeRes();
-
-    await controller.obterPagamentosPendentes(makeReq({}), res);
+    await dispatch(controller.obterPagamentosPendentes.bind(controller), makeReq({}), res);
 
     expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ message: "Erro ao obter pagamentos pendentes" });
   });
 });

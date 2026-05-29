@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import historicosRouter from '../../src/routes/historicos';
 import authRouter from '../../src/routes/authRoutes';
-import { errorHandler } from '../../src/middleware/errorHandler';
+import { errorHandler } from '../../src/middlewares/errorHandler';
 import { authenticate } from '../../src/middlewares/authMiddleware';
 import testSequelize from '../setup';
 import '../../src/models';

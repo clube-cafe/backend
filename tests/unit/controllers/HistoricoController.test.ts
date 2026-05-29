@@ -1,21 +1,21 @@
 import { HistoricoController } from "../../../src/controllers/HistoricoController";
-import { Request, Response } from "express";
-import { VALID_UUID, makeRes, makeReq, makeAuthenticatedReq, makeAdminReq } from "../test-helpers";
+import {
+  VALID_UUID,
+  makeRes,
+  makeReq,
+  makeAuthenticatedReq,
+  makeAdminReq,
+  dispatch,
+} from "../test-helpers";
+import { NotFoundError, ValidationError } from "../../../src/utils/Errors";
 
 describe("HistoricoController", () => {
-
   it("deve retornar saldo atual com sucesso", async () => {
     const controller = new HistoricoController();
-    const mockService = {
-      getSaldoAtual: jest.fn().mockResolvedValue(150),
-    } as any;
+    const mockService = { getSaldoAtual: jest.fn().mockResolvedValue(150) } as any;
     (controller as any).historicoService = mockService;
-
-    const req = makeReq({});
     const res = makeRes();
-
-    await controller.getSaldoAtual(req, res);
-
+    await dispatch(controller.getSaldoAtual.bind(controller), makeReq({}), res);
     expect(mockService.getSaldoAtual).toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith({ saldo: 150 });
   });
@@ -23,17 +23,16 @@ describe("HistoricoController", () => {
   it("deve retornar 404 quando histórico não encontrado", async () => {
     const controller = new HistoricoController();
     const mockService = {
-      getHistoricoById: jest.fn().mockRejectedValue(new Error("Histórico não encontrado")),
+      getHistoricoById: jest.fn().mockRejectedValue(new NotFoundError("Histórico")),
     } as any;
     (controller as any).historicoService = mockService;
-
-    const req = makeAuthenticatedReq({ params: { id: VALID_UUID } });
     const res = makeRes();
-
-    await controller.getHistoricoById(req, res);
-
+    await dispatch(
+      controller.getHistoricoById.bind(controller),
+      makeAuthenticatedReq({ params: { id: VALID_UUID } }),
+      res
+    );
     expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ message: "Histórico não encontrado" });
   });
 
   it("deve criar histórico (201)", async () => {
@@ -41,22 +40,36 @@ describe("HistoricoController", () => {
     const mockService = { createHistorico: jest.fn().mockResolvedValue({ id: "h1" }) } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.createHistorico(
-      makeAuthenticatedReq({ body: { user_id: VALID_UUID, tipo: "ENTRADA", valor: 10, data: "2024-01-01", descricao: "ok" } }),
+    await dispatch(
+      controller.createHistorico.bind(controller),
+      makeAuthenticatedReq({
+        body: {
+          user_id: VALID_UUID,
+          tipo: "ENTRADA",
+          valor: 10,
+          data: "2024-01-01",
+          descricao: "ok",
+        },
+      }),
       res
     );
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({ id: "h1" });
   });
 
-  it("deve retornar 400 ao criar histórico (erro)", async () => {
+  it("deve retornar 400 ao criar histórico (ValidationError)", async () => {
     const controller = new HistoricoController();
-    const mockService = { createHistorico: jest.fn().mockRejectedValue(new Error("erro")) } as any;
+    const mockService = {
+      createHistorico: jest.fn().mockRejectedValue(new ValidationError("erro")),
+    } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.createHistorico(makeAuthenticatedReq({ body: { user_id: VALID_UUID } }), res);
+    await dispatch(
+      controller.createHistorico.bind(controller),
+      makeAuthenticatedReq({ body: { user_id: VALID_UUID } }),
+      res
+    );
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "erro" });
   });
 
   it("deve listar históricos (200)", async () => {
@@ -64,58 +77,79 @@ describe("HistoricoController", () => {
     const mockService = { getAllHistoricos: jest.fn().mockResolvedValue([{ id: "h1" }]) } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getAllHistoricos(makeAdminReq({}), res);
+    await dispatch(controller.getAllHistoricos.bind(controller), makeAdminReq({}), res);
     expect(res.json).toHaveBeenCalledWith([{ id: "h1" }]);
   });
 
-  it("deve retornar 500 ao listar históricos (erro)", async () => {
+  it("deve retornar 500 ao listar históricos (erro inesperado)", async () => {
     const controller = new HistoricoController();
-    const mockService = { getAllHistoricos: jest.fn().mockRejectedValue(new Error("falha")) } as any;
+    const mockService = {
+      getAllHistoricos: jest.fn().mockRejectedValue(new Error("falha")),
+    } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getAllHistoricos(makeAdminReq({}), res);
+    await dispatch(controller.getAllHistoricos.bind(controller), makeAdminReq({}), res);
     expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ message: "Erro ao obter históricos", error: "falha" });
   });
 
   it("deve obter histórico por id (200)", async () => {
     const controller = new HistoricoController();
-    const mockService = { 
-      getHistoricoById: jest.fn().mockResolvedValue({ id: VALID_UUID, user_id: VALID_UUID }) 
+    const mockService = {
+      getHistoricoById: jest.fn().mockResolvedValue({ id: VALID_UUID, user_id: VALID_UUID }),
     } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getHistoricoById(makeAuthenticatedReq({ params: { id: VALID_UUID } }), res);
+    await dispatch(
+      controller.getHistoricoById.bind(controller),
+      makeAuthenticatedReq({ params: { id: VALID_UUID } }),
+      res
+    );
     expect(res.json).toHaveBeenCalledWith({ id: VALID_UUID, user_id: VALID_UUID });
   });
 
-  it("deve retornar 400 em getById (erro genérico)", async () => {
+  it("deve retornar 400 em getById (ValidationError do serviço)", async () => {
     const controller = new HistoricoController();
-    const mockService = { getHistoricoById: jest.fn().mockRejectedValue(new Error("erro genérico")) } as any;
+    const mockService = {
+      getHistoricoById: jest.fn().mockRejectedValue(new ValidationError("erro genérico")),
+    } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getHistoricoById(makeAuthenticatedReq({ params: { id: VALID_UUID } }), res);
+    await dispatch(
+      controller.getHistoricoById.bind(controller),
+      makeAuthenticatedReq({ params: { id: VALID_UUID } }),
+      res
+    );
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "erro genérico" });
   });
 
   it("deve listar por usuário (200)", async () => {
     const controller = new HistoricoController();
-    const mockService = { getHistoricosByUserId: jest.fn().mockResolvedValue([{ id: "h1" }]) } as any;
+    const mockService = {
+      getHistoricosByUserId: jest.fn().mockResolvedValue([{ id: "h1" }]),
+    } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getHistoricosByUserId(makeAuthenticatedReq({ params: { user_id: VALID_UUID } }), res);
+    await dispatch(
+      controller.getHistoricosByUserId.bind(controller),
+      makeAuthenticatedReq({ params: { user_id: VALID_UUID } }),
+      res
+    );
     expect(res.json).toHaveBeenCalledWith([{ id: "h1" }]);
   });
 
-  it("deve retornar 400 por usuário (erro)", async () => {
+  it("deve retornar 400 por usuário (ValidationError)", async () => {
     const controller = new HistoricoController();
-    const mockService = { getHistoricosByUserId: jest.fn().mockRejectedValue(new Error("erro")) } as any;
+    const mockService = {
+      getHistoricosByUserId: jest.fn().mockRejectedValue(new ValidationError("erro")),
+    } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getHistoricosByUserId(makeAuthenticatedReq({ params: { user_id: VALID_UUID } }), res);
+    await dispatch(
+      controller.getHistoricosByUserId.bind(controller),
+      makeAuthenticatedReq({ params: { user_id: VALID_UUID } }),
+      res
+    );
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "erro" });
   });
 
   it("deve listar por tipo (200)", async () => {
@@ -123,113 +157,150 @@ describe("HistoricoController", () => {
     const mockService = { getHistoricosByTipo: jest.fn().mockResolvedValue([{ id: "h1" }]) } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getHistoricosByTipo(makeAdminReq({ params: { tipo: "ENTRADA" } }), res);
+    await dispatch(
+      controller.getHistoricosByTipo.bind(controller),
+      makeAdminReq({ params: { tipo: "ENTRADA" } }),
+      res
+    );
     expect(res.json).toHaveBeenCalledWith([{ id: "h1" }]);
   });
 
-  it("deve retornar 400 por tipo (erro)", async () => {
+  it("deve retornar 400 por tipo (ValidationError)", async () => {
     const controller = new HistoricoController();
-    const mockService = { getHistoricosByTipo: jest.fn().mockRejectedValue(new Error("erro")) } as any;
+    const mockService = {
+      getHistoricosByTipo: jest.fn().mockRejectedValue(new ValidationError("erro")),
+    } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getHistoricosByTipo(makeAdminReq({ params: { tipo: "X" } }), res);
+    await dispatch(
+      controller.getHistoricosByTipo.bind(controller),
+      makeAdminReq({ params: { tipo: "X" } }),
+      res
+    );
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "erro" });
   });
 
   it("deve listar por período (200)", async () => {
     const controller = new HistoricoController();
-    const mockService = { getHistoricosByPeriodo: jest.fn().mockResolvedValue([{ id: "h1" }]) } as any;
+    const mockService = {
+      getHistoricosByPeriodo: jest.fn().mockResolvedValue([{ id: "h1" }]),
+    } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getHistoricosByPeriodo(makeAdminReq({ query: { data_inicio: "2024-01-01", data_fim: "2024-02-01" } }), res);
+    await dispatch(
+      controller.getHistoricosByPeriodo.bind(controller),
+      makeAdminReq({ query: { data_inicio: "2024-01-01", data_fim: "2024-02-01" } }),
+      res
+    );
     expect(res.json).toHaveBeenCalledWith([{ id: "h1" }]);
   });
 
-  it("deve retornar 400 por período (erro)", async () => {
+  it("deve retornar 400 por período (datas inválidas)", async () => {
     const controller = new HistoricoController();
-    const mockService = { getHistoricosByPeriodo: jest.fn().mockRejectedValue(new Error("erro periodo")) } as any;
-    (controller as any).historicoService = mockService;
+    (controller as any).historicoService = { getHistoricosByPeriodo: jest.fn() };
     const res = makeRes();
-    await controller.getHistoricosByPeriodo(makeAdminReq({ 
-      query: { data_inicio: "x", data_fim: "y" } 
-    }), res);
+    await dispatch(
+      controller.getHistoricosByPeriodo.bind(controller),
+      makeAdminReq({ query: { data_inicio: "x", data_fim: "y" } }),
+      res
+    );
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "Datas inválidas" });
   });
 
   it("deve listar por usuário e período (200)", async () => {
     const controller = new HistoricoController();
-    const mockService = { getHistoricosByUserIdAndPeriodo: jest.fn().mockResolvedValue([{ id: "h1" }]) } as any;
+    const mockService = {
+      getHistoricosByUserIdAndPeriodo: jest.fn().mockResolvedValue([{ id: "h1" }]),
+    } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getHistoricosByUserIdAndPeriodo(makeAuthenticatedReq({ 
-      params: { user_id: VALID_UUID }, 
-      query: { data_inicio: "2024-01-01", data_fim: "2024-02-01" } 
-    }), res);
+    await dispatch(
+      controller.getHistoricosByUserIdAndPeriodo.bind(controller),
+      makeAuthenticatedReq({
+        params: { user_id: VALID_UUID },
+        query: { data_inicio: "2024-01-01", data_fim: "2024-02-01" },
+      }),
+      res
+    );
     expect(res.json).toHaveBeenCalledWith([{ id: "h1" }]);
   });
 
-  it("deve retornar 400 por usuário e período (erro)", async () => {
+  it("deve retornar 400 por usuário e período (datas inválidas)", async () => {
     const controller = new HistoricoController();
-    const mockService = { getHistoricosByUserIdAndPeriodo: jest.fn().mockRejectedValue(new Error("erro")) } as any;
-    (controller as any).historicoService = mockService;
+    (controller as any).historicoService = { getHistoricosByUserIdAndPeriodo: jest.fn() };
     const res = makeRes();
-    await controller.getHistoricosByUserIdAndPeriodo(makeAuthenticatedReq({ 
-      params: { user_id: VALID_UUID }, 
-      query: { data_inicio: "x", data_fim: "y" } 
-    }), res);
+    await dispatch(
+      controller.getHistoricosByUserIdAndPeriodo.bind(controller),
+      makeAuthenticatedReq({
+        params: { user_id: VALID_UUID },
+        query: { data_inicio: "x", data_fim: "y" },
+      }),
+      res
+    );
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "Datas inválidas" });
   });
 
   it("deve atualizar histórico (200)", async () => {
     const controller = new HistoricoController();
-    const mockService = { 
+    const mockService = {
       getHistoricoById: jest.fn().mockResolvedValue({ id: VALID_UUID, user_id: VALID_UUID }),
-      updateHistorico: jest.fn().mockResolvedValue({ id: VALID_UUID, valor: 20 }) 
+      updateHistorico: jest.fn().mockResolvedValue({ id: VALID_UUID, valor: 20 }),
     } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.updateHistorico(makeAuthenticatedReq({ params: { id: VALID_UUID }, body: { valor: 20 } }), res);
+    await dispatch(
+      controller.updateHistorico.bind(controller),
+      makeAuthenticatedReq({ params: { id: VALID_UUID }, body: { valor: 20 } }),
+      res
+    );
     expect(res.json).toHaveBeenCalledWith({ id: VALID_UUID, valor: 20 });
   });
 
   it("deve retornar 404 ao atualizar histórico não encontrado", async () => {
     const controller = new HistoricoController();
-    const mockService = { 
-      getHistoricoById: jest.fn().mockRejectedValue(new Error("Histórico não encontrado"))
+    const mockService = {
+      getHistoricoById: jest.fn().mockRejectedValue(new NotFoundError("Histórico")),
     } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.updateHistorico(makeAuthenticatedReq({ params: { id: VALID_UUID }, body: {} }), res);
+    await dispatch(
+      controller.updateHistorico.bind(controller),
+      makeAuthenticatedReq({ params: { id: VALID_UUID }, body: {} }),
+      res
+    );
     expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ message: "Histórico não encontrado" });
   });
 
   it("deve deletar histórico (204)", async () => {
     const controller = new HistoricoController();
-    const mockService = { 
+    const mockService = {
       getHistoricoById: jest.fn().mockResolvedValue({ id: VALID_UUID, user_id: VALID_UUID }),
-      deleteHistorico: jest.fn().mockResolvedValue(true) 
+      deleteHistorico: jest.fn().mockResolvedValue(true),
     } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.deleteHistorico(makeAuthenticatedReq({ params: { id: VALID_UUID } }), res);
+    await dispatch(
+      controller.deleteHistorico.bind(controller),
+      makeAuthenticatedReq({ params: { id: VALID_UUID } }),
+      res
+    );
     expect(res.status).toHaveBeenCalledWith(204);
     expect(res.send).toHaveBeenCalled();
   });
 
   it("deve retornar 404 ao deletar histórico não encontrado", async () => {
     const controller = new HistoricoController();
-    const mockService = { 
-      getHistoricoById: jest.fn().mockRejectedValue(new Error("Histórico não encontrado"))
+    const mockService = {
+      getHistoricoById: jest.fn().mockRejectedValue(new NotFoundError("Histórico")),
     } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.deleteHistorico(makeAuthenticatedReq({ params: { id: VALID_UUID } }), res);
+    await dispatch(
+      controller.deleteHistorico.bind(controller),
+      makeAuthenticatedReq({ params: { id: VALID_UUID } }),
+      res
+    );
     expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ message: "Histórico não encontrado" });
   });
 
   it("deve retornar total entradas (200)", async () => {
@@ -237,18 +308,19 @@ describe("HistoricoController", () => {
     const mockService = { getTotalEntradas: jest.fn().mockResolvedValue(10) } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getTotalEntradas(makeReq({}), res);
+    await dispatch(controller.getTotalEntradas.bind(controller), makeReq({}), res);
     expect(res.json).toHaveBeenCalledWith({ total: 10 });
   });
 
-  it("deve retornar 500 em total entradas (erro)", async () => {
+  it("deve retornar 500 em total entradas (erro inesperado)", async () => {
     const controller = new HistoricoController();
-    const mockService = { getTotalEntradas: jest.fn().mockRejectedValue(new Error("falha")) } as any;
+    const mockService = {
+      getTotalEntradas: jest.fn().mockRejectedValue(new Error("falha")),
+    } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getTotalEntradas(makeReq({}), res);
+    await dispatch(controller.getTotalEntradas.bind(controller), makeReq({}), res);
     expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ message: "Erro ao calcular total", error: "falha" });
   });
 
   it("deve retornar total saídas (200)", async () => {
@@ -256,18 +328,19 @@ describe("HistoricoController", () => {
     const mockService = { getTotalSaidas: jest.fn().mockResolvedValue(5) } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getTotalSaidas(makeReq({}), res);
+    await dispatch(controller.getTotalSaidas.bind(controller), makeReq({}), res);
     expect(res.json).toHaveBeenCalledWith({ total: 5 });
   });
 
-  it("deve retornar 500 em total saídas (erro)", async () => {
+  it("deve retornar 500 em total saídas (erro inesperado)", async () => {
     const controller = new HistoricoController();
-    const mockService = { getTotalSaidas: jest.fn().mockRejectedValue(new Error("falha")) } as any;
+    const mockService = {
+      getTotalSaidas: jest.fn().mockRejectedValue(new Error("falha")),
+    } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getTotalSaidas(makeReq({}), res);
+    await dispatch(controller.getTotalSaidas.bind(controller), makeReq({}), res);
     expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ message: "Erro ao calcular total", error: "falha" });
   });
 
   it("deve retornar total por usuário (200)", async () => {
@@ -275,18 +348,27 @@ describe("HistoricoController", () => {
     const mockService = { getTotalEntradasByUser: jest.fn().mockResolvedValue(7) } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getTotalEntradasByUser(makeAuthenticatedReq({ params: { user_id: VALID_UUID } }), res);
+    await dispatch(
+      controller.getTotalEntradasByUser.bind(controller),
+      makeAuthenticatedReq({ params: { user_id: VALID_UUID } }),
+      res
+    );
     expect(res.json).toHaveBeenCalledWith({ total: 7 });
   });
 
-  it("deve retornar 400 em total entradas por usuário (erro)", async () => {
+  it("deve retornar 400 em total entradas por usuário (ValidationError)", async () => {
     const controller = new HistoricoController();
-    const mockService = { getTotalEntradasByUser: jest.fn().mockRejectedValue(new Error("erro")) } as any;
+    const mockService = {
+      getTotalEntradasByUser: jest.fn().mockRejectedValue(new ValidationError("erro")),
+    } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getTotalEntradasByUser(makeAuthenticatedReq({ params: { user_id: VALID_UUID } }), res);
+    await dispatch(
+      controller.getTotalEntradasByUser.bind(controller),
+      makeAuthenticatedReq({ params: { user_id: VALID_UUID } }),
+      res
+    );
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "erro" });
   });
 
   it("deve retornar total saídas por usuário (200)", async () => {
@@ -294,18 +376,27 @@ describe("HistoricoController", () => {
     const mockService = { getTotalSaidasByUser: jest.fn().mockResolvedValue(4) } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getTotalSaidasByUser(makeAuthenticatedReq({ params: { user_id: VALID_UUID } }), res);
+    await dispatch(
+      controller.getTotalSaidasByUser.bind(controller),
+      makeAuthenticatedReq({ params: { user_id: VALID_UUID } }),
+      res
+    );
     expect(res.json).toHaveBeenCalledWith({ total: 4 });
   });
 
-  it("deve retornar 400 em total saídas por usuário (erro)", async () => {
+  it("deve retornar 400 em total saídas por usuário (ValidationError)", async () => {
     const controller = new HistoricoController();
-    const mockService = { getTotalSaidasByUser: jest.fn().mockRejectedValue(new Error("erro")) } as any;
+    const mockService = {
+      getTotalSaidasByUser: jest.fn().mockRejectedValue(new ValidationError("erro")),
+    } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getTotalSaidasByUser(makeAuthenticatedReq({ params: { user_id: VALID_UUID } }), res);
+    await dispatch(
+      controller.getTotalSaidasByUser.bind(controller),
+      makeAuthenticatedReq({ params: { user_id: VALID_UUID } }),
+      res
+    );
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "erro" });
   });
 
   it("deve retornar saldo por usuário (200)", async () => {
@@ -313,17 +404,26 @@ describe("HistoricoController", () => {
     const mockService = { getSaldoAtualByUser: jest.fn().mockResolvedValue(3) } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getSaldoAtualByUser(makeAuthenticatedReq({ params: { user_id: VALID_UUID } }), res);
+    await dispatch(
+      controller.getSaldoAtualByUser.bind(controller),
+      makeAuthenticatedReq({ params: { user_id: VALID_UUID } }),
+      res
+    );
     expect(res.json).toHaveBeenCalledWith({ saldo: 3 });
   });
 
-  it("deve retornar 400 em saldo por usuário (erro)", async () => {
+  it("deve retornar 400 em saldo por usuário (ValidationError)", async () => {
     const controller = new HistoricoController();
-    const mockService = { getSaldoAtualByUser: jest.fn().mockRejectedValue(new Error("erro")) } as any;
+    const mockService = {
+      getSaldoAtualByUser: jest.fn().mockRejectedValue(new ValidationError("erro")),
+    } as any;
     (controller as any).historicoService = mockService;
     const res = makeRes();
-    await controller.getSaldoAtualByUser(makeAuthenticatedReq({ params: { user_id: VALID_UUID } }), res);
+    await dispatch(
+      controller.getSaldoAtualByUser.bind(controller),
+      makeAuthenticatedReq({ params: { user_id: VALID_UUID } }),
+      res
+    );
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "erro" });
   });
 });

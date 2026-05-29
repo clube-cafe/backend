@@ -2,30 +2,27 @@ import { Request, Response, NextFunction } from "express";
 import { AppError } from "../utils/Errors";
 import { Logger } from "../utils/Logger";
 
-/**
- * Middleware centralizado para tratamento de erros
- */
-export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
-  Logger.error("Erro não tratado", { message: err.message, stack: err.stack });
-
+export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
   if (err instanceof AppError) {
-    return res.status(err.statusCode).json({
+    if (err.statusCode >= 500) {
+      Logger.error("Erro na aplicação", { message: err.message, stack: err.stack });
+    }
+    res.status(err.statusCode).json({
       error: err.name,
       message: err.message,
       statusCode: err.statusCode,
     });
+    return;
   }
 
-  return res.status(500).json({
+  Logger.error("Erro não tratado", { message: err.message, stack: err.stack });
+  res.status(500).json({
     error: "InternalServerError",
     message: "Erro interno do servidor",
     statusCode: 500,
   });
 }
 
-/**
- * Middleware para validar Content-Type
- */
 export function validateContentType(req: Request, res: Response, next: NextFunction) {
   if (["POST", "PUT", "PATCH"].includes(req.method)) {
     const contentType = req.get("content-type");
@@ -39,9 +36,6 @@ export function validateContentType(req: Request, res: Response, next: NextFunct
   next();
 }
 
-/**
- * Middleware para rate limiting básico (opcional)
- */
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   const start = Date.now();
 

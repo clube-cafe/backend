@@ -1,20 +1,30 @@
-import cron from "node-cron";
+import cron, { type ScheduledTask } from "node-cron";
+import { Op } from "sequelize";
 import { PagamentoRepository } from "../repository/PagamentoRepository";
 import { STATUS } from "../models/enums";
 import { Pagamento } from "../models/Pagamento";
+import { TokenBlacklist } from "../models/TokenBlacklist";
 import { Logger } from "../utils/Logger";
 import { TransactionHelper } from "./TransactionHelper";
 
 const pagamentoRepository = new PagamentoRepository();
 
 export class SchedulerJobs {
+  private static tasks: ScheduledTask[] = [];
+
   static iniciarJobs() {
-    this.jobMarcarAtrasados();
-    this.jobLembreteVencimento();
+    this.tasks.push(this.jobMarcarAtrasados());
+    this.tasks.push(this.jobLembreteVencimento());
+    this.tasks.push(this.jobLimparBlacklist());
   }
 
-  private static jobMarcarAtrasados() {
-    cron.schedule("0 0 * * *", async () => {
+  static pararJobs() {
+    this.tasks.forEach((t) => t.stop());
+    this.tasks = [];
+  }
+
+  private static jobMarcarAtrasados(): ScheduledTask {
+    return cron.schedule("0 0 * * *", async () => {
       try {
         Logger.info("[CRON] Executando: Marcar pagamentos atrasados");
 
@@ -39,8 +49,8 @@ export class SchedulerJobs {
     });
   }
 
-  private static jobLembreteVencimento() {
-    cron.schedule("0 8 * * *", async () => {
+  private static jobLembreteVencimento(): ScheduledTask {
+    return cron.schedule("0 8 * * *", async () => {
       try {
         Logger.info("[CRON] Executando: Lembretes de vencimento (3 dias)");
         const hoje = new Date();
@@ -61,6 +71,19 @@ export class SchedulerJobs {
         }
       } catch (error) {
         Logger.error("[CRON] Erro ao buscar lembretes", error);
+      }
+    });
+  }
+
+  private static jobLimparBlacklist(): ScheduledTask {
+    return cron.schedule("0 3 * * *", async () => {
+      try {
+        const removidos = await TokenBlacklist.destroy({
+          where: { expiresAt: { [Op.lt]: new Date() } },
+        });
+        Logger.info(`[CRON] Blacklist: ${removidos} tokens expirados removidos`);
+      } catch (error) {
+        Logger.error("[CRON] Erro ao limpar blacklist de tokens", error);
       }
     });
   }

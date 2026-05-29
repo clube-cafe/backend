@@ -4,7 +4,7 @@ import delinquenciaRouter from '../../src/routes/delinquencia';
 import authRouter from '../../src/routes/authRoutes';
 import assinaturasRouter from '../../src/routes/assinaturas';
 import pagamentosRouter from '../../src/routes/pagamentos';
-import { errorHandler } from '../../src/middleware/errorHandler';
+import { errorHandler } from '../../src/middlewares/errorHandler';
 import { authenticate } from '../../src/middlewares/authMiddleware';
 import testSequelize from '../setup';
 import '../../src/models';

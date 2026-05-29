@@ -1,7 +1,7 @@
 import request from 'supertest';
 import express from 'express';
 import authRouter from '../../src/routes/authRoutes';
-import { errorHandler } from '../../src/middleware/errorHandler';
+import { errorHandler } from '../../src/middlewares/errorHandler';
 import testSequelize from '../setup';
 import '../../src/models';
 import { User } from '../../src/models/User';

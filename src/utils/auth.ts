@@ -1,8 +1,15 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jwt, { type JwtPayload, type SignOptions } from "jsonwebtoken";
 import { env } from "../config/env";
 
 const JWT_SECRET = env.JWT_SECRET;
+const JWT_EXPIRES_IN = env.JWT_EXPIRES_IN;
+
+export interface TokenPayload extends JwtPayload {
+  id: string;
+  email: string;
+  tipo_user?: string;
+}
 
 export const hashPassword = async (password: string): Promise<string> => {
   const salt = await bcrypt.genSalt(10);
@@ -16,10 +23,17 @@ export const comparePassword = async (
   return await bcrypt.compare(password, hashedPassword);
 };
 
-export const generateToken = (userId: string, username: string, tipo_user?: string): string => {
-  return jwt.sign({ id: userId, username, tipo_user }, JWT_SECRET, { expiresIn: "1h" });
+export const generateToken = (userId: string, email: string, tipo_user?: string): string => {
+  return jwt.sign({ id: userId, email, tipo_user }, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN as SignOptions["expiresIn"],
+  });
 };
 
-export const verifyToken = (token: string): any => {
-  return jwt.verify(token, JWT_SECRET);
+export const verifyToken = (token: string): TokenPayload => {
+  return jwt.verify(token, JWT_SECRET) as TokenPayload;
+};
+
+export const decodeToken = (token: string): TokenPayload | null => {
+  const decoded = jwt.decode(token);
+  return decoded && typeof decoded === "object" ? (decoded as TokenPayload) : null;
 };

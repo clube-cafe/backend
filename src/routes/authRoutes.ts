@@ -13,6 +13,7 @@ import {
 } from "../controllers/authController";
 import { authenticate } from "../middlewares/authMiddleware";
 import { isAdmin } from "../middlewares/roleMiddleware";
+import { authLimiter } from "../middlewares/rateLimit";
 
 const router = Router();
 
@@ -42,7 +43,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/login", login);
+router.post("/login", authLimiter, login);
 
 /**
  * @swagger
@@ -77,7 +78,7 @@ router.post("/login", login);
  *             schema:
  *               $ref: '#/components/schemas/ValidationError'
  */
-router.post("/register", register);
+router.post("/register", authLimiter, register);
 
 /**
  * @swagger
